@@ -33,6 +33,7 @@ bld/
 
 # Build folder
 publish/
+AppPackages/
 
 # NuGet Packages
 *.nupkg
