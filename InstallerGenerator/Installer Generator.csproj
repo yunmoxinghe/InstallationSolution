@@ -17,9 +17,6 @@
 		<PublishAot>true</PublishAot>
 		<SelfContained>false</SelfContained>
 	</PropertyGroup>
-	<ItemGroup>
-		<Content Remove="Assets\AppIcon.ico" />
-	</ItemGroup>
 
 	<!-- Guard 源码打包到应用目录的 GuardSource 子目录 -->
 	<ItemGroup>
@@ -126,5 +123,6 @@
 		<GenerateTestArtifacts>False</GenerateTestArtifacts>
 		<AppxBundle>Never</AppxBundle>
 		<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+		<ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 	</PropertyGroup>
 </Project>
