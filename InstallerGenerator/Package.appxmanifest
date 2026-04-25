@@ -11,11 +11,11 @@
   IgnorableNamespaces="uap rescap systemai">
 
   <Identity
-    Name="28AE62C8.FurryXiyi.InstallerGenerator"
-    Publisher="CN=69199A48-A765-47C7-BD15-A581600DBBC9"
+    Name="8B8CC4F4.31214C85D73D6"
+    Publisher="CN=A19C62A9-1AA6-44AB-9F57-2DE6C380D9C9"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="52a58b31-5eac-47ee-901d-ec38545aac02" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="fa327bd1-f3e5-4a33-85a3-c9a0a6380056" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>ms-resource:AppDisplayName</DisplayName>
