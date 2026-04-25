@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InstallerUI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f28b7713adda431cfdc09c2028a4412df0178e0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e55e740d42f88471db3564ec9222e098dfb0e81d")]
 [assembly: System.Reflection.AssemblyProductAttribute("InstallerUI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InstallerUI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

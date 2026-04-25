@@ -1,0 +1,4 @@
+ResourcePack=C:\Users\gold\source\repos\InstallationSolution\InstallerGenerator\bin\ARM64\Release\net8.0-windows10.0.19041.0\win-arm64\Installer Generator_1.0.4.0_scale-100.msix
+ResourcePack=C:\Users\gold\source\repos\InstallationSolution\InstallerGenerator\bin\ARM64\Release\net8.0-windows10.0.19041.0\win-arm64\Installer Generator_1.0.4.0_scale-125.msix
+ResourcePack=C:\Users\gold\source\repos\InstallationSolution\InstallerGenerator\bin\ARM64\Release\net8.0-windows10.0.19041.0\win-arm64\Installer Generator_1.0.4.0_scale-150.msix
+ResourcePack=C:\Users\gold\source\repos\InstallationSolution\InstallerGenerator\bin\ARM64\Release\net8.0-windows10.0.19041.0\win-arm64\Installer Generator_1.0.4.0_scale-400.msix
