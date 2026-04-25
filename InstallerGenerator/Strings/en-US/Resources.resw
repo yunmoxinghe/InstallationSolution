@@ -1,0 +1,255 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppDisplayName" xml:space="preserve">
+    <value>Installer Generator</value>
+  </data>
+  <data name="AppTitle" xml:space="preserve">
+    <value>Installer Generator</value>
+  </data>
+  <data name="HomeItem.Content" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="HomePageWelcomeText.Text" xml:space="preserve">
+    <value>Welcome to Installer Generator</value>
+  </data>
+  <data name="HomePageJoinButton.Content" xml:space="preserve">
+    <value>View GitHub repository</value>
+  </data>
+  <data name="SettingsPageTitle.Text" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="AppearanceGroup.Text" xml:space="preserve">
+    <value>Appearance &amp; Material</value>
+  </data>
+  <data name="ThemeSettingsExpander.Header" xml:space="preserve">
+    <value>App Theme</value>
+  </data>
+  <data name="ThemeSettingsExpander.Description" xml:space="preserve">
+    <value>Select Light, Dark, or System</value>
+  </data>
+  <data name="ThemeSystem.Content" xml:space="preserve">
+    <value>System Default</value>
+  </data>
+  <data name="ThemeLight.Content" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="ThemeDark.Content" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="MaterialSettingsExpander.Header" xml:space="preserve">
+    <value>Background Material</value>
+  </data>
+  <data name="MaterialSettingsExpander.Description" xml:space="preserve">
+    <value>Select Mica or Acrylic</value>
+  </data>
+  <data name="MaterialMica.Content" xml:space="preserve">
+    <value>Mica</value>
+  </data>
+  <data name="MaterialMicaAlt.Content" xml:space="preserve">
+    <value>Mica Alt</value>
+  </data>
+  <data name="MaterialAcrylic.Content" xml:space="preserve">
+    <value>Acrylic</value>
+  </data>
+  <data name="NavGroup.Text" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="NavSettingsCard.Header" xml:space="preserve">
+    <value>Navigation Pane Position</value>
+  </data>
+  <data name="NavSettingsCard.Description" xml:space="preserve">
+    <value>Set the navigation bar to display on the left or top</value>
+  </data>
+  <data name="PanePositionLeft.Content" xml:space="preserve">
+    <value>Left</value>
+  </data>
+  <data name="PanePositionTop.Content" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="SoundGroup.Text" xml:space="preserve">
+    <value>Sound</value>
+  </data>
+  <data name="SoundSettingsCard.Header" xml:space="preserve">
+    <value>Control sound</value>
+  </data>
+  <data name="SoundSettingsCard.Description" xml:space="preserve">
+    <value>Control interaction sounds in the app</value>
+  </data>
+  <data name="AboutGroup.Text" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="QQGroup.Text" xml:space="preserve">
+    <value>QQ Group</value>
+  </data>
+  <data name="DiscordGroup.Text" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="Feedback.Text" xml:space="preserve">
+    <value>Send Feedback</value>
+  </data>
+  <data name="ExternalOpenDialog.Title" xml:space="preserve">
+    <value>This app is trying to open an external application</value>
+  </data>
+  <data name="ExternalOpenDialog.PrimaryButtonText" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="ExternalOpenDialog.SecondaryButtonText" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="DialogMessage.Text" xml:space="preserve">
+    <value>Do you allow it?</value>
+  </data>
+  <data name="VersionPrefix" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="HomePageTitle.Text" xml:space="preserve">
+    <value>Generate Installer</value>
+  </data>
+  <data name="StepPackage.Text" xml:space="preserve">
+    <value>1. Select installation package</value>
+  </data>
+  <data name="PackageCard.Header" xml:space="preserve">
+    <value>Package file</value>
+  </data>
+  <data name="PackageCard.Description" xml:space="preserve">
+    <value>.msix / .msixbundle / .appx / .appxbundle</value>
+  </data>
+  <data name="BrowseButton.Content" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="StepOutput.Text" xml:space="preserve">
+    <value>2. Select output folder</value>
+  </data>
+  <data name="OutputCard.Header" xml:space="preserve">
+    <value>Output folder</value>
+  </data>
+  <data name="OutputCard.Description" xml:space="preserve">
+    <value>The generated installer .exe will be saved here</value>
+  </data>
+  <data name="BrowseOutputButton.Content" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="GenerateButton.Content" xml:space="preserve">
+    <value>Generate</value>
+  </data>
+  <data name="GenerateButtonText.Text" xml:space="preserve">
+    <value>Generate</value>
+  </data>
+</root>

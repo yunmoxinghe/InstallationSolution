@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "InstallerGenerator (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "InstallerGenerator (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+C:\Users\gold\source\repos\InstallationSolution\InstallerGenerator\Installer Generator.csproj;x64

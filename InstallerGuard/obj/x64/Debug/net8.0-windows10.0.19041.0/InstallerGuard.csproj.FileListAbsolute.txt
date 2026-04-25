@@ -1,0 +1,17 @@
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.exe
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.deps.json
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.runtimeconfig.json
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.pdb
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\Microsoft.Windows.SDK.NET.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\x64\Debug\net8.0-windows10.0.19041.0\WinRT.Runtime.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.AssemblyInfoInputs.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.AssemblyInfo.cs
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.csproj.CoreCompileInputs.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\Installe.E2351B80.Up2Date
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\refint\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.pdb
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\InstallerGuard.genruntimeconfig.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\x64\Debug\net8.0-windows10.0.19041.0\ref\InstallerGuard.dll

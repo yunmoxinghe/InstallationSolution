@@ -1,0 +1,17 @@
+{
+  "runtimeOptions": {
+    "tfm": "net8.0",
+    "framework": {
+      "name": "Microsoft.NETCore.App",
+      "version": "8.0.0"
+    },
+    "configProperties": {
+      "System.Diagnostics.Tracing.EventSource.IsSupported": false,
+      "System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported": false,
+      "System.Runtime.Serialization.EnableUnsafeBinaryFormatterSerialization": false,
+      "System.Threading.ThreadPool.UseWindowsThreadPool": true,
+      "System.Linq.Expressions.CanEmitObjectArrayDelegate": false,
+      "CSWINRT_USE_WINDOWS_UI_XAML_PROJECTIONS": false
+    }
+  }
+}

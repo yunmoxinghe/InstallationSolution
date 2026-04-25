@@ -1,0 +1,14 @@
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\Debug\net10.0\InstallerGuard.exe
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\Debug\net10.0\InstallerGuard.deps.json
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\Debug\net10.0\InstallerGuard.runtimeconfig.json
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\Debug\net10.0\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\bin\Debug\net10.0\InstallerGuard.pdb
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.AssemblyInfoInputs.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.AssemblyInfo.cs
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.csproj.CoreCompileInputs.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\refint\InstallerGuard.dll
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.pdb
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\InstallerGuard.genruntimeconfig.cache
+C:\Users\gold\source\repos\InstallationSolution\InstallerGuard\obj\Debug\net10.0\ref\InstallerGuard.dll
