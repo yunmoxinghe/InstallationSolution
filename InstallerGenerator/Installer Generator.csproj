@@ -53,7 +53,19 @@
 		</Content>
 		<Content Include="Assets\LockScreenLogo.scale-200.png" />
 		<Content Include="Assets\Square150x150Logo.scale-200.png" />
+		<Content Include="Assets\Square44x44Logo.scale-100.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Square44x44Logo.scale-125.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Square44x44Logo.scale-150.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="Assets\Square44x44Logo.scale-200.png">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+		<Content Include="Assets\Square44x44Logo.scale-400.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
 		<Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
@@ -92,9 +104,9 @@
 		</Content>
 	</ItemGroup>
 	<ItemGroup>
-		<None Update="Assets\AppIcon.ico">
+		<Content Include="Assets\AppIcon.ico">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
+		</Content>
 	</ItemGroup>
 
 	<!--

@@ -192,6 +192,22 @@ namespace InstallerGenerator
             Instance = null;
         }
 
+        // ── 标题栏图标：根据 DPI scale 选择最佳资源 ─────────────────
+        private void UpdateTitleBarIcon()
+        {
+            double scale = (Content as FrameworkElement)?.XamlRoot?.RasterizationScale ?? 1.0;
+            int scalePercent = scale switch
+            {
+                >= 4.0 => 400,
+                >= 2.0 => 200,
+                >= 1.5 => 150,
+                >= 1.25 => 125,
+                _ => 100
+            };
+            ImgAppIcon.Source = new BitmapImage(
+                new Uri($"ms-appx:///Assets/Square44x44Logo.scale-{scalePercent}.png"));
+        }
+
         // ── Splash ───────────────────────────────────────────────────
         public async void ShowSplash()
         {
@@ -217,7 +233,7 @@ namespace InstallerGenerator
         private void Root_Loaded(object sender, RoutedEventArgs e)
         {
             TitleBarAppName.Text = Package.Current.DisplayName;
-            ImgAppIcon.Source = new BitmapImage(Package.Current.Logo);
+            UpdateTitleBarIcon();
 
             ApplySettings();
             UpdateBackButton();
