@@ -23,7 +23,7 @@ public static class AppConstants
         public const string InstallerSuffix = "_Installer.exe";
         public const string TempDirPrefix   = "GuardPublish_";
         public const string DotnetExe       = "dotnet";
-        public const string PublishArgs     = "publish \"{0}\" -r win-x64 -c Release -o \"{1}\" --no-self-contained";
+        public const string PublishArgs     = "publish \"{0}\" -r {2} -c Release -o \"{1}\" --no-self-contained";
     }
 
     public static class FileExtensions

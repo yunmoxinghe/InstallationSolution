@@ -64,7 +64,8 @@ public static class BuildService
 
     private static void RunDotnetPublish(string csproj, string publishOut)
     {
-        var args = string.Format(AppConstants.Build.PublishArgs, csproj, publishOut);
+        var rid  = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "win-arm64" : "win-x64";
+        var args = string.Format(AppConstants.Build.PublishArgs, csproj, publishOut, rid);
         var psi  = new ProcessStartInfo
         {
             FileName               = AppConstants.Build.DotnetExe,
