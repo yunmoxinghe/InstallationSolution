@@ -1,3 +1,4 @@
+using InstallerGenerator.Services;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -6,14 +7,12 @@ using System;
 using System.Diagnostics;
 using InstallerGenerator.Dialogs;
 using Windows.ApplicationModel;
-using Windows.Storage;
 using Windows.System;
 
 namespace InstallerGenerator.Pages
 {
     public sealed partial class SettingsPage : Page
     {
-        private readonly ApplicationDataContainer _localSettings = ApplicationData.Current.LocalSettings;
         private bool _isInitializing = true;
 
         public SettingsPage()
@@ -32,29 +31,22 @@ namespace InstallerGenerator.Pages
 
         private void LoadUI()
         {
-            string theme = _localSettings.Values["AppTheme"] as string ?? "System";
-            RbTheme.SelectedIndex = theme switch
+            RbTheme.SelectedIndex = SettingsService.Theme switch
             {
                 "Light" => 1,
-                "Dark" => 2,
-                _ => 0
+                "Dark"  => 2,
+                _       => 0
             };
 
-            string material = _localSettings.Values["AppMaterial"] as string ?? "Mica";
-            RbMaterial.SelectedIndex = material switch
+            RbMaterial.SelectedIndex = SettingsService.Material switch
             {
                 "MicaAlt" => 1,
                 "Acrylic" => 2,
-                _ => 0
+                _         => 0
             };
 
-            string pos = _localSettings.Values["PanePosition"] as string ?? "Left";
-            PanePositionCombo.SelectedIndex = pos == "Top" ? 1 : 0;
-
-            bool sound = _localSettings.Values["EnableSound"] is bool b ? b : true;
-            if (_localSettings.Values["EnableSound"] == null)
-                _localSettings.Values["EnableSound"] = true;
-            SoundToggle.IsOn = sound;
+            PanePositionCombo.SelectedIndex = SettingsService.PanePosition == "Top" ? 1 : 0;
+            SoundToggle.IsOn = SettingsService.Sound;
         }
 
         public void LoadAppInfo()
@@ -114,7 +106,7 @@ namespace InstallerGenerator.Pages
                 _ => ElementTheme.Default
             };
 
-            _localSettings.Values["AppTheme"] = value;
+            SettingsService.SetTheme(value);
             AppThemeManager.CurrentTheme = theme;
 
             if (App.MainWindow?.Content is FrameworkElement root)
@@ -134,7 +126,7 @@ namespace InstallerGenerator.Pages
                 _ => "Mica"
             };
 
-            _localSettings.Values["AppMaterial"] = value;
+            SettingsService.SetMaterial(value);
             AppThemeManager.CurrentMaterial = value switch
             {
                 "MicaAlt" => BackgroundMaterial.MicaAlt,
@@ -149,7 +141,7 @@ namespace InstallerGenerator.Pages
         {
             if (_isInitializing) return;
 
-            _localSettings.Values["PanePosition"] = PanePositionCombo.SelectedIndex == 1 ? "Top" : "Left";
+            SettingsService.SetPanePosition(PanePositionCombo.SelectedIndex == 1 ? "Top" : "Left");
 
             if (App.MainWindow is MainWindow mainWindow)
                 mainWindow.ApplySettings();
@@ -160,7 +152,7 @@ namespace InstallerGenerator.Pages
             if (_isInitializing) return;
 
             bool isOn = SoundToggle.IsOn;
-            _localSettings.Values["EnableSound"] = isOn;
+            SettingsService.SetSound(isOn);
 
             // 直接设置，不再调 ApplySettings（避免重复执行导航栏逻辑）
             ElementSoundPlayer.State = isOn

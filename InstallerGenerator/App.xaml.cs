@@ -1,3 +1,5 @@
+using InstallerGenerator.Constants;
+using InstallerGenerator.Services;
 using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
@@ -10,7 +12,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Windows.ApplicationModel.Resources;
-using Windows.Storage;
 using Windows.UI;
 
 namespace InstallerGenerator
@@ -155,7 +156,7 @@ namespace InstallerGenerator
 
         static void BringWindowToFront(IntPtr hwnd)
         {
-            if (IsIconic(hwnd)) ShowWindow(hwnd, 9); // SW_RESTORE
+            if (IsIconic(hwnd)) ShowWindow(hwnd, AppConstants.Win32.SW_RESTORE);
             SetForegroundWindow(hwnd);
         }
     }
@@ -167,16 +168,13 @@ namespace InstallerGenerator
 
         public static void LoadSettings()
         {
-            var s = ApplicationData.Current.LocalSettings;
-
             try
             {
-                string theme = s.Values["AppTheme"] as string ?? "System";
-                CurrentTheme = theme switch
+                CurrentTheme = SettingsService.Theme switch
                 {
                     "Light" => ElementTheme.Light,
-                    "Dark" => ElementTheme.Dark,
-                    _ => ElementTheme.Default
+                    "Dark"  => ElementTheme.Dark,
+                    _       => ElementTheme.Default
                 };
             }
             catch (Exception ex)
@@ -187,12 +185,11 @@ namespace InstallerGenerator
 
             try
             {
-                string material = s.Values["AppMaterial"] as string ?? "Mica";
-                CurrentMaterial = material switch
+                CurrentMaterial = SettingsService.Material switch
                 {
                     "MicaAlt" => BackgroundMaterial.MicaAlt,
                     "Acrylic" => BackgroundMaterial.Acrylic,
-                    _ => BackgroundMaterial.Mica
+                    _         => BackgroundMaterial.Mica
                 };
             }
             catch (Exception ex)
@@ -203,10 +200,7 @@ namespace InstallerGenerator
 
             try
             {
-                bool sound = s.Values["EnableSound"] is bool b ? b : true;
-                if (s.Values["EnableSound"] == null)
-                    s.Values["EnableSound"] = true;
-                ElementSoundPlayer.State = sound
+                ElementSoundPlayer.State = SettingsService.Sound
                     ? ElementSoundPlayerState.On
                     : ElementSoundPlayerState.Off;
             }

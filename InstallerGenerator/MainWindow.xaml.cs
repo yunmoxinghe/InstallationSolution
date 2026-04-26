@@ -9,17 +9,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.Storage;
 using Windows.System;
 using WinRT.Interop;
 using InstallerGenerator.Dialogs;
 using InstallerGenerator.Pages;
+using InstallerGenerator.Services;
 
 namespace InstallerGenerator
 {
     public sealed partial class MainWindow : Window
     {
-        private readonly ApplicationDataContainer _localSettings = ApplicationData.Current.LocalSettings;
         private readonly AppWindow _appWindow;
         private readonly IntPtr _hwnd;
         
@@ -221,7 +220,7 @@ namespace InstallerGenerator
             {
                 SplashOverlay.Visibility = Visibility.Collapsed;
 
-                bool sound = _localSettings.Values["EnableSound"] is bool b ? b : true;
+                bool sound = SettingsService.Sound;
                 ElementSoundPlayer.State = sound
                     ? ElementSoundPlayerState.On
                     : ElementSoundPlayerState.Off;
@@ -249,11 +248,7 @@ namespace InstallerGenerator
         {
             try
             {
-                string position = _localSettings.Values["PanePosition"] as string ?? "Left";
-                if (_localSettings.Values["PanePosition"] == null)
-                    _localSettings.Values["PanePosition"] = "Left";
-
-                NavView.PaneDisplayMode = position == "Top"
+                NavView.PaneDisplayMode = SettingsService.PanePosition == "Top"
                     ? NavigationViewPaneDisplayMode.Top
                     : NavigationViewPaneDisplayMode.Left;
             }
