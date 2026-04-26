@@ -262,5 +262,23 @@ namespace InstallerGenerator
                 Debug.WriteLine($"ApplySettings Error: {ex.Message}");
             }
         }
+
+        // ── 文件激活：导航到 HomePage 并加载文件 ────────────────────
+        public void LoadFileWhenReady(string filePath)
+        {
+            // 确保当前在 HomePage
+            if (ContentFrame.CurrentSourcePageType != typeof(HomePage))
+            {
+                NavigateByTag("home");
+                NavView.SelectedItem = NavView.MenuItems[0];
+            }
+
+            // 等下一帧页面完成导航后再加载
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                if (ContentFrame.Content is HomePage homePage)
+                    homePage.LoadFile(filePath);
+            });
+        }
     }
 }

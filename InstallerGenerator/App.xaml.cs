@@ -7,6 +7,7 @@ using Microsoft.Windows.AppLifecycle;
 using Microsoft.Windows.AppNotifications;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Windows.ApplicationModel.Resources;
 using Windows.Storage;
@@ -46,14 +47,19 @@ namespace InstallerGenerator
                 return;
             }
 
-            mainInstance.Activated += (_, _) =>
+            mainInstance.Activated += (_, activatedArgs) =>
             {
+                // 在回调线程上立即提取路径，避免跨线程访问 WinRT 对象
+                string? filePath = ExtractFilePathFromActivation(activatedArgs);
+
                 if (MainWindow != null)
                 {
                     MainWindow.DispatcherQueue.TryEnqueue(() =>
                     {
                         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
                         BringWindowToFront(hwnd);
+                        if (filePath != null && MainWindow is InstallerGenerator.MainWindow mw)
+                            mw.LoadFileWhenReady(filePath);
                     });
                 }
             };
@@ -80,7 +86,42 @@ namespace InstallerGenerator
                 MainWindow.AppWindow.Title = loader.GetString("AppTitle");
 
                 ((MainWindow)MainWindow).ShowSplash();
+
+                // 处理启动时的文件激活
+                TryLoadFileFromActivation(AppInstance.GetCurrent().GetActivatedEventArgs());
             });
+        }
+
+        // ── 从激活参数中提取文件路径（可在任意线程调用）────────────
+        private static string? ExtractFilePathFromActivation(AppActivationArguments activationArgs)
+        {
+            try
+            {
+                if (activationArgs.Kind != ExtendedActivationKind.File) return null;
+                if (activationArgs.Data is not Windows.ApplicationModel.Activation.IFileActivatedEventArgs fileArgs) return null;
+
+                var file = fileArgs.Files.OfType<Windows.Storage.StorageFile>().FirstOrDefault(f =>
+                {
+                    var ext = System.IO.Path.GetExtension(f.Name).ToLowerInvariant();
+                    return ext is ".msix" or ".msixbundle" or ".appx" or ".appxbundle";
+                });
+
+                return file?.Path;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"ExtractFilePathFromActivation failed: {ex.Message}");
+                return null;
+            }
+        }
+
+        // ── 在 UI 线程上加载文件（OnLaunched 时使用）────────────────
+        private static void TryLoadFileFromActivation(AppActivationArguments activationArgs)
+        {
+            var filePath = ExtractFilePathFromActivation(activationArgs);
+            if (filePath == null) return;
+            if (MainWindow is InstallerGenerator.MainWindow mw)
+                mw.LoadFileWhenReady(filePath);
         }
 
         // ── 通知激活处理 ─────────────────────────────────────────────

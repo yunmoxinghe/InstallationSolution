@@ -36,6 +36,15 @@ namespace InstallerGenerator.Pages
             }
         }
 
+        // ── 外部加载文件（文件关联激活） ────────────────────────────
+        public void LoadFile(string filePath)
+        {
+            _msixPath = filePath;
+            PackagePathText.Text    = System.IO.Path.GetFileName(filePath);
+            PackagePathText.Opacity = 1;
+            UpdateGenerateButton();
+        }
+
         // ── 选择 msix ────────────────────────────────────────────────
 
         private async void BrowsePackage_Click(object sender, RoutedEventArgs e)

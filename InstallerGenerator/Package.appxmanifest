@@ -66,6 +66,17 @@
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
+        <!-- 文件关联：双击 msix/msixbundle/appx/appxbundle 打开本应用 -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="msixpackage">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.msix</uap:FileType>
+              <uap:FileType>.msixbundle</uap:FileType>
+              <uap:FileType>.appx</uap:FileType>
+              <uap:FileType>.appxbundle</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
       </Extensions>
     </Application>
   </Applications>
