@@ -69,6 +69,7 @@
         <!-- 文件关联：双击 msix/msixbundle/appx/appxbundle 打开本应用 -->
         <uap:Extension Category="windows.fileTypeAssociation">
           <uap:FileTypeAssociation Name="msixpackage">
+            <uap:Logo>Assets\files.png</uap:Logo>
             <uap:SupportedFileTypes>
               <uap:FileType>.msix</uap:FileType>
               <uap:FileType>.msixbundle</uap:FileType>
