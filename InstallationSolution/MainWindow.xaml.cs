@@ -134,6 +134,35 @@ namespace InstallationSolution
             }
         }
 
+        public async void ShowSplashForFileChoice(string filePath)
+        {
+            SplashOverlay.Visibility = Visibility.Visible;
+            SplashOverlay.Opacity = 1;
+
+            await Task.Delay(100);
+            SplashFadeIn.Begin();
+
+            await Task.Delay(1500);
+
+            var tcs = new TaskCompletionSource<bool>();
+            SplashFadeOut.Completed += (s, e) => tcs.SetResult(true);
+            SplashFadeOut.Begin();
+            await tcs.Task;
+
+            SplashOverlay.Visibility = Visibility.Collapsed;
+            await Task.Delay(16);
+
+            // 导航到选择页面
+            ContentFrame.Navigate(typeof(FileChoicePage));
+
+            // 设置文件路径
+            await Task.Delay(100);
+            if (ContentFrame.Content is FileChoicePage page)
+            {
+                page.SetFilePath(filePath);
+            }
+        }
+
         private static void DismissGuardToast()
         {
             try

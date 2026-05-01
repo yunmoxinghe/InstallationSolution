@@ -12,7 +12,7 @@ namespace InstallationSolution
     public partial class App : Application
     {
         public static Window? MainWindow { get; private set; }
-        public static string? MsixPath { get; private set; }
+        public static string? MsixPath { get; set; }
 
         public App()
         {
@@ -21,11 +21,6 @@ namespace InstallationSolution
 
         protected override void OnLaunched(LaunchActivatedEventArgs args)
         {
-            // 读取命令行参数
-            var cmdArgs = Environment.GetCommandLineArgs();
-            if (cmdArgs.Length > 1)
-                MsixPath = cmdArgs[1];
-
             MainWindow = new MainWindow();
 
             // 设置标题栏
@@ -62,20 +57,41 @@ namespace InstallationSolution
                 }
 
                 // 根据启动方式决定显示哪个界面
-                string? filePathToLoad = null;
+                var activationArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+                Debug.WriteLine($"Activation Kind: {activationArgs.Kind}");
                 
-                if (!string.IsNullOrEmpty(MsixPath))
+                // 检查是否是文件激活（双击文件）
+                var filePathToLoad = ExtractFilePathFromActivation(activationArgs);
+                Debug.WriteLine($"File path from activation: {filePathToLoad}");
+                
+                if (activationArgs.Kind == Microsoft.Windows.AppLifecycle.ExtendedActivationKind.File && filePathToLoad != null)
                 {
-                    // 有参数：显示安装器界面（InstallerUI功能）
-                    ((MainWindow)MainWindow).ShowSplash();
+                    // 文件激活：显示选择界面（安装或生成）
+                    Debug.WriteLine("Showing file choice page (file activation)");
+                    ((MainWindow)MainWindow).ShowSplashForFileChoice(filePathToLoad);
                 }
                 else
                 {
-                    // 检查是否是文件激活
-                    filePathToLoad = ExtractFilePathFromActivation(AppInstance.GetCurrent().GetActivatedEventArgs());
+                    // 检查命令行参数（Guard传入）
+                    var cmdArgs = Environment.GetCommandLineArgs();
+                    if (cmdArgs.Length > 1)
+                    {
+                        MsixPath = cmdArgs[1];
+                        Debug.WriteLine($"MsixPath from cmdArgs: {MsixPath}");
+                    }
                     
-                    // 显示启动屏幕，然后导航到生成器
-                    ((MainWindow)MainWindow).ShowSplashForGenerator(filePathToLoad);
+                    if (!string.IsNullOrEmpty(MsixPath))
+                    {
+                        // 有命令行参数（Guard传入）：直接显示安装器界面
+                        Debug.WriteLine("Showing installer UI (command line)");
+                        ((MainWindow)MainWindow).ShowSplash();
+                    }
+                    else
+                    {
+                        // 无参数：显示生成器界面
+                        Debug.WriteLine("Showing generator page");
+                        ((MainWindow)MainWindow).ShowSplashForGenerator(null);
+                    }
                 }
             });
         }
@@ -85,16 +101,39 @@ namespace InstallationSolution
         {
             try
             {
-                if (activationArgs.Kind != Microsoft.Windows.AppLifecycle.ExtendedActivationKind.File) return null;
-                if (activationArgs.Data is not Windows.ApplicationModel.Activation.IFileActivatedEventArgs fileArgs) return null;
+                Debug.WriteLine($"Activation Kind: {activationArgs.Kind}");
+                
+                if (activationArgs.Kind != Microsoft.Windows.AppLifecycle.ExtendedActivationKind.File)
+                {
+                    Debug.WriteLine("Not a file activation");
+                    return null;
+                }
+                
+                if (activationArgs.Data is not Windows.ApplicationModel.Activation.IFileActivatedEventArgs fileArgs)
+                {
+                    Debug.WriteLine("Data is not IFileActivatedEventArgs");
+                    return null;
+                }
 
+                Debug.WriteLine($"Files count: {fileArgs.Files.Count}");
+                
                 var file = fileArgs.Files.OfType<Windows.Storage.StorageFile>().FirstOrDefault(f =>
                 {
                     var ext = System.IO.Path.GetExtension(f.Name).ToLowerInvariant();
+                    Debug.WriteLine($"File: {f.Name}, Extension: {ext}");
                     return ext is ".msix" or ".msixbundle" or ".appx" or ".appxbundle";
                 });
 
-                return file?.Path;
+                if (file != null)
+                {
+                    Debug.WriteLine($"Found file: {file.Path}");
+                    return file.Path;
+                }
+                else
+                {
+                    Debug.WriteLine("No matching file found");
+                    return null;
+                }
             }
             catch (Exception ex)
             {

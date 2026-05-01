@@ -29,22 +29,10 @@ namespace InstallationSolution.Pages
         {
             _msixPath = App.MsixPath;
 
-            // 没有收到 Guard 信号 → UI 测试模式
-            var guardPath = Environment.GetEnvironmentVariable("GUARD_SOURCE_PATH");
-            if (string.IsNullOrEmpty(guardPath))
-            {
-                AppNameText.Text      = "WinUI3Template";
-                AppPublisherText.Text = "Publisher: YUNMOXINGHE\nVersion: 1.3.1.0\nSource: (UI Test Mode)";
-                PackageInfoBar.Severity = InfoBarSeverity.Warning;
-                PackageInfoBar.Title   = "UI 测试模式";
-                PackageInfoBar.Message = "未通过 Guard 启动，显示模拟数据。";
-                AppCapabilities.CapabilitiesList = ["internetClient", "privateNetworkClientServer", "picturesLibrary"];
-                AppCapabilities.Visibility = Visibility.Visible;
-                return;
-            }
-
+            // 检查是否有有效的 msix 路径
             if (!string.IsNullOrEmpty(_msixPath) && File.Exists(_msixPath))
             {
+                // 有有效文件，显示实际信息
                 AppNameText.Text = Path.GetFileNameWithoutExtension(_msixPath);
                 PackageInfoBar.Severity = InfoBarSeverity.Informational;
                 PackageInfoBar.Title   = "准备安装";
@@ -58,6 +46,8 @@ namespace InstallationSolution.Pages
                 var lines = new System.Collections.Generic.List<string>();
                 if (!string.IsNullOrEmpty(info.Publisher)) lines.Add($"Publisher: {info.Publisher}");
                 if (!string.IsNullOrEmpty(info.Version))   lines.Add($"Version: {info.Version}");
+                
+                // 优先显示 GUARD_SOURCE_PATH，否则显示实际路径
                 var sourcePath = Environment.GetEnvironmentVariable("GUARD_SOURCE_PATH");
                 lines.Add($"Source: {(string.IsNullOrEmpty(sourcePath) ? _msixPath : sourcePath)}");
                 AppPublisherText.Text = string.Join("\n", lines);
@@ -73,14 +63,31 @@ namespace InstallationSolution.Pages
             }
             else
             {
-                AppNameText.Text      = "未检测到安装包";
-                AppPublisherText.Text = string.IsNullOrEmpty(_msixPath) ? "未传入路径参数" : $"Source: {_msixPath}";
-                PackageInfoBar.Severity = InfoBarSeverity.Error;
-                PackageInfoBar.Title    = "错误";
-                PackageInfoBar.Message  = string.IsNullOrEmpty(_msixPath)
-                    ? "未收到 msix 路径，请通过 Guard 启动本程序。"
-                    : $"找不到文件：{_msixPath}";
-                InstallButton.IsEnabled = false;
+                // 没有有效文件，检查是否是 UI 测试模式
+                var guardPath = Environment.GetEnvironmentVariable("GUARD_SOURCE_PATH");
+                if (string.IsNullOrEmpty(guardPath))
+                {
+                    // UI 测试模式
+                    AppNameText.Text      = "WinUI3Template";
+                    AppPublisherText.Text = "Publisher: YUNMOXINGHE\nVersion: 1.3.1.0\nSource: (UI Test Mode)";
+                    PackageInfoBar.Severity = InfoBarSeverity.Warning;
+                    PackageInfoBar.Title   = "UI 测试模式";
+                    PackageInfoBar.Message = "未通过 Guard 启动，显示模拟数据。";
+                    AppCapabilities.CapabilitiesList = ["internetClient", "privateNetworkClientServer", "picturesLibrary"];
+                    AppCapabilities.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    // 有 Guard 路径但文件不存在
+                    AppNameText.Text      = "未检测到安装包";
+                    AppPublisherText.Text = string.IsNullOrEmpty(_msixPath) ? "未传入路径参数" : $"Source: {_msixPath}";
+                    PackageInfoBar.Severity = InfoBarSeverity.Error;
+                    PackageInfoBar.Title    = "错误";
+                    PackageInfoBar.Message  = string.IsNullOrEmpty(_msixPath)
+                        ? "未收到 msix 路径，请通过 Guard 启动本程序。"
+                        : $"找不到文件：{_msixPath}";
+                    InstallButton.IsEnabled = false;
+                }
             }
         }
 
@@ -106,11 +113,21 @@ namespace InstallationSolution.Pages
             try
             {
                 StatusText.Text = "正在验证证书...";
-                DetailText.Text = "导入签名证书到受信任根...";
+                DetailText.Text = "检查签名证书...";
+                
+                // 尝试导入证书到当前用户存储（不需要管理员权限）
+                bool certImported = false;
                 try
                 {
-                    await Task.Run(() => ImportSigningCertificate(_msixPath));
-                    DetailText.Text = "证书导入完成";
+                    await Task.Run(() => certImported = ImportSigningCertificateToUser(_msixPath));
+                    if (certImported)
+                    {
+                        DetailText.Text = "证书已导入到当前用户存储";
+                    }
+                    else
+                    {
+                        DetailText.Text = "证书已存在或跳过导入";
+                    }
                 }
                 catch (Exception certEx)
                 {
@@ -156,6 +173,37 @@ namespace InstallationSolution.Pages
             if (store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false).Count == 0)
                 store.Add(cert);
             store.Close();
+        }
+
+        /// <summary>
+        /// 将签名证书导入到当前用户的受信任根存储（不需要管理员权限）
+        /// </summary>
+        private static bool ImportSigningCertificateToUser(string packagePath)
+        {
+            try
+            {
+                var cert = new X509Certificate2(X509Certificate2.CreateFromSignedFile(packagePath));
+                
+                // 导入到当前用户的受信任根证书存储
+                var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+                store.Open(OpenFlags.ReadWrite);
+                
+                // 检查证书是否已存在
+                if (store.Certificates.Find(X509FindType.FindByThumbprint, cert.Thumbprint, false).Count == 0)
+                {
+                    store.Add(cert);
+                    store.Close();
+                    return true;
+                }
+                
+                store.Close();
+                return false;
+            }
+            catch
+            {
+                // 如果导入失败，尝试继续安装（可能证书已经被信任）
+                return false;
+            }
         }
 
         // ── 结果 ──────────────────────────────────────────────────────
