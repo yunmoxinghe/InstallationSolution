@@ -13,6 +13,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
 using WinRT.Interop;
+using InstallationSolution.Services;
 
 namespace InstallationSolution.Pages
 {
@@ -161,12 +162,19 @@ namespace InstallationSolution.Pages
             if (!File.Exists(csproj))
                 throw new FileNotFoundException($"找不到 Guard 源码：{csproj}");
 
-            // 清理旧的 msix payload，复制新的
+            // 确保 Payload 目录存在
+            Directory.CreateDirectory(payloadDir);
+
+            // 清理旧的 payload 文件
             foreach (var f in Directory.GetFiles(payloadDir, "*.msix")) File.Delete(f);
             foreach (var f in Directory.GetFiles(payloadDir, "*.msixbundle")) File.Delete(f);
             foreach (var f in Directory.GetFiles(payloadDir, "*.appx")) File.Delete(f);
             foreach (var f in Directory.GetFiles(payloadDir, "*.appxbundle")) File.Delete(f);
 
+            // 使用自举式构建：运行时将当前应用打包成 InstallerUI.zip
+            SelfBuildService.CopyToPayloadAsync(payloadDir).GetAwaiter().GetResult();
+
+            // 复制用户选择的 msix
             var msixFileName = Path.GetFileName(_msixPath!);
             File.Copy(_msixPath!, Path.Combine(payloadDir, msixFileName), overwrite: true);
 

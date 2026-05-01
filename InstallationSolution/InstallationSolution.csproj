@@ -44,10 +44,7 @@
 			<Link>GuardSource\notification.png</Link>
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
-		<Content Include="..\InstallerGuard\Payload\InstallerUI.zip">
-			<Link>GuardSource\Payload\InstallerUI.zip</Link>
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
+		<!-- 使用自举式构建，不需要预先存在的 InstallerUI.zip -->
 	</ItemGroup>
 
 	<ItemGroup>

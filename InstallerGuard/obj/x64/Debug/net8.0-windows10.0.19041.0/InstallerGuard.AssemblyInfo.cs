@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InstallerGuard")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f3a9100493543105cb89378228cc856ba19cc2f8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8fca10afe6eae40f2409c013bfd90431cdfc4eed")]
 [assembly: System.Reflection.AssemblyProductAttribute("InstallerGuard")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InstallerGuard")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
