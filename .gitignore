@@ -30,6 +30,7 @@ bld/
 *.user
 *.userosscache
 *.sln.docstates
+*.csproj.user
 
 # Build folder
 publish/

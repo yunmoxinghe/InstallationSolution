@@ -12,20 +12,20 @@ using Windows.Management.Deployment;
 
 namespace InstallationSolution.Pages
 {
-    public sealed partial class HomePage : Page
+    public sealed partial class InstallationPage : Page
     {
         private string? _msixPath;
         private string? _packageName;
 
-        public HomePage()
+        public InstallationPage()
         {
             this.InitializeComponent();
-            this.Loaded += HomePage_Loaded;
+            this.Loaded += InstallationPage_Loaded;
         }
 
         // ── 初始化 ────────────────────────────────────────────────────
 
-        private async void HomePage_Loaded(object sender, RoutedEventArgs e)
+        private async void InstallationPage_Loaded(object sender, RoutedEventArgs e)
         {
             _msixPath = App.MsixPath;
 

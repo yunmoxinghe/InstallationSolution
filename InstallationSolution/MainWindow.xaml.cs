@@ -96,7 +96,7 @@ namespace InstallationSolution
             SplashOverlay.Visibility = Visibility.Collapsed;
             await Task.Delay(16);
 
-            ContentFrame.Navigate(typeof(HomePage));
+            ContentFrame.Navigate(typeof(InstallationPage));
 
             // UI 已就绪，关闭 Guard 发出的加载中 Toast
             DismissGuardToast();

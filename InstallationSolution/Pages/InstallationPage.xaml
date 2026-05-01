@@ -1,5 +1,5 @@
 ﻿<Page
-    x:Class="InstallationSolution.Pages.HomePage"
+    x:Class="InstallationSolution.Pages.InstallationPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:InstallationSolution.Controls">

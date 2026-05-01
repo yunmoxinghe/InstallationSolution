@@ -25,7 +25,7 @@ namespace InstallationSolution.Pages
 
             // 设置MsixPath并导航到安装界面
             App.MsixPath = _filePath;
-            Frame.Navigate(typeof(HomePage));
+            Frame.Navigate(typeof(InstallationPage));
         }
 
         private void GenerateButton_Click(object sender, RoutedEventArgs e)
