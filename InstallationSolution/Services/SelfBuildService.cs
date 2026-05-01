@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 
@@ -38,96 +39,192 @@ namespace InstallationSolution.Services
                 }
             }
 
-            // 构建 InstallerUI.zip
-            var installDir = Package.Current.InstalledLocation.Path;
-            var tempDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_SelfBuild");
-            Directory.CreateDirectory(tempDir);
+            // 构建非打包版本的 InstallerUI
+            var tempBuildDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_NonPackaged_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempBuildDir);
 
-            // 使用唯一的文件名避免冲突
-            var zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
-            Debug.WriteLine($"[SelfBuildService] 创建新的 ZIP: {zipPath}");
-
-            // 创建 InstallerUI 目录结构
-            var uiDir = Path.Combine(tempDir, "InstallerUI");
-            if (Directory.Exists(uiDir))
+            try
             {
+                Debug.WriteLine($"[SelfBuildService] 开始构建非打包版本");
+                
+                // 获取当前项目路径
+                var installDir = Package.Current.InstalledLocation.Path;
+                var projectRoot = FindProjectRoot(installDir);
+                
+                if (projectRoot == null)
+                {
+                    throw new DirectoryNotFoundException("无法找到项目根目录");
+                }
+                
+                var csprojPath = Path.Combine(projectRoot, "InstallationSolution.Unpackaged.csproj");
+                if (!File.Exists(csprojPath))
+                {
+                    throw new FileNotFoundException($"找不到非打包项目文件: {csprojPath}");
+                }
+                
+                Debug.WriteLine($"[SelfBuildService] 项目路径: {csprojPath}");
+                
+                // 使用简单的 publish 命令，不覆盖项目配置
+                // 项目文件中已经配置了 WindowsPackageType=MSIX，但我们需要覆盖为 None
+                var publishArgs = $"publish \"{csprojPath}\" -r win-x64 -c Release -o \"{tempBuildDir}\" --no-self-contained";
+                
+                Debug.WriteLine($"[SelfBuildService] 执行: dotnet {publishArgs}");
+                
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = publishArgs,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                };
+                
+                using var proc = Process.Start(psi);
+                if (proc == null)
+                {
+                    throw new Exception("无法启动 dotnet publish");
+                }
+                
+                // 异步读取输出，避免阻塞 UI 线程
+                var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+                var stderrTask = proc.StandardError.ReadToEndAsync();
+                
+                await proc.WaitForExitAsync();
+                
+                var stdout = await stdoutTask;
+                var stderr = await stderrTask;
+                
+                Debug.WriteLine($"[SelfBuildService] dotnet publish stdout:");
+                Debug.WriteLine(stdout);
+                
+                if (proc.ExitCode != 0)
+                {
+                    Debug.WriteLine($"[SelfBuildService] dotnet publish 失败");
+                    Debug.WriteLine($"[SelfBuildService] stdout: {stdout}");
+                    Debug.WriteLine($"[SelfBuildService] stderr: {stderr}");
+                    throw new Exception($"构建非打包版本失败 (exit {proc.ExitCode}):\n{stderr}");
+                }
+                
+                Debug.WriteLine($"[SelfBuildService] 构建成功");
+                
+                // 检查构建产物
+                var exeFile = Path.Combine(tempBuildDir, "InstallationSolution.exe");
+                var priFile = Path.Combine(tempBuildDir, "InstallationSolution.pri");
+                
+                if (!File.Exists(exeFile))
+                {
+                    throw new FileNotFoundException($"构建产物不存在: {exeFile}");
+                }
+                
+                if (!File.Exists(priFile))
+                {
+                    Debug.WriteLine($"[SelfBuildService] 警告: 缺少 InstallationSolution.pri");
+                }
+                
+                Debug.WriteLine($"[SelfBuildService] InstallationSolution.exe 存在: {File.Exists(exeFile)}");
+                Debug.WriteLine($"[SelfBuildService] InstallationSolution.pri 存在: {File.Exists(priFile)}");
+                
+                // 创建 ZIP
+                var tempDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_SelfBuild");
+                Directory.CreateDirectory(tempDir);
+                
+                var zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
+                Debug.WriteLine($"[SelfBuildService] 创建 ZIP: {zipPath}");
+                
+                // 创建 InstallerUI 目录结构
+                var uiDir = Path.Combine(tempDir, "InstallerUI");
+                if (Directory.Exists(uiDir))
+                {
+                    try { Directory.Delete(uiDir, true); } catch { }
+                }
+                Directory.CreateDirectory(uiDir);
+                
+                // 复制构建产物
+                Debug.WriteLine($"[SelfBuildService] 复制构建产物到 {uiDir}");
+                await Task.Run(() => CopyDirectory(tempBuildDir, uiDir, excludeDir: "GuardSource"));
+                
+                var fileCount = Directory.GetFiles(uiDir, "*", SearchOption.AllDirectories).Length;
+                Debug.WriteLine($"[SelfBuildService] 已复制 {fileCount} 个文件");
+                
+                // 压缩成 zip
+                if (File.Exists(zipPath))
+                {
+                    var deleted = await TryDeleteFileAsync(zipPath);
+                    if (!deleted)
+                    {
+                        zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
+                    }
+                }
+                
+                Debug.WriteLine($"[SelfBuildService] 开始压缩到 {zipPath}");
+                
+                await Task.Run(() =>
+                {
+                    try
+                    {
+                        if (File.Exists(zipPath))
+                        {
+                            File.Delete(zipPath);
+                        }
+                        
+                        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                        {
+                            var sourceDir = Path.GetDirectoryName(uiDir)!;
+                            AddDirectoryToZip(archive, sourceDir, sourceDir);
+                        }
+                        
+                        Debug.WriteLine($"[SelfBuildService] 压缩完成");
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[SelfBuildService] 压缩失败: {ex.Message}");
+                        throw;
+                    }
+                });
+                
+                // 验证 ZIP 文件
+                var zipInfo = new FileInfo(zipPath);
+                Debug.WriteLine($"[SelfBuildService] ZIP 文件大小: {zipInfo.Length} 字节 ({zipInfo.Length / 1024.0 / 1024.0:F2} MB)");
+                
+                if (zipInfo.Length < 1000)
+                {
+                    throw new InvalidOperationException($"ZIP 文件太小 ({zipInfo.Length} 字节)，可能创建失败");
+                }
+                
+                // 清理临时目录
                 try { Directory.Delete(uiDir, true); } catch { }
+                try { Directory.Delete(tempBuildDir, true); } catch { }
+                
+                lock (_lock) { _cachedZipPath = zipPath; }
+                return zipPath;
             }
-            Directory.CreateDirectory(uiDir);
-
-            // 复制当前应用的所有文件（排除 GuardSource）
-            Debug.WriteLine($"[SelfBuildService] 开始复制文件从 {installDir} 到 {uiDir}");
-            await Task.Run(() => CopyDirectory(installDir, uiDir, excludeDir: "GuardSource"));
-            
-            // 检查复制的文件
-            var fileCount = Directory.GetFiles(uiDir, "*", SearchOption.AllDirectories).Length;
-            Debug.WriteLine($"[SelfBuildService] 已复制 {fileCount} 个文件");
-            
-            // 检查关键文件
-            var exeFile = Path.Combine(uiDir, "InstallationSolution.exe");
-            var priFile = Path.Combine(uiDir, "resources.pri");
-            Debug.WriteLine($"[SelfBuildService] InstallationSolution.exe 存在: {File.Exists(exeFile)}");
-            Debug.WriteLine($"[SelfBuildService] resources.pri 存在: {File.Exists(priFile)}");
-            
-            if (!File.Exists(priFile))
+            catch
             {
-                Debug.WriteLine($"[SelfBuildService] 警告: 缺少 resources.pri，可能导致运行时错误");
+                // 清理失败时的临时目录
+                try { Directory.Delete(tempBuildDir, true); } catch { }
+                throw;
             }
+        }
 
-            // 压缩成 zip（确保文件不存在）
-            if (File.Exists(zipPath))
+        /// <summary>
+        /// 查找项目根目录
+        /// </summary>
+        private static string? FindProjectRoot(string startPath)
+        {
+            var dir = new DirectoryInfo(startPath);
+            while (dir != null)
             {
-                var deleted = await TryDeleteFileAsync(zipPath);
-                if (!deleted)
+                // 查找 .csproj 文件
+                if (Directory.GetFiles(dir.FullName, "*.csproj").Length > 0)
                 {
-                    // 如果删除失败，使用新的文件名
-                    zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
+                    return dir.FullName;
                 }
+                
+                // 向上一级
+                dir = dir.Parent;
             }
-
-            Debug.WriteLine($"[SelfBuildService] 开始压缩到 {zipPath}");
-            Debug.WriteLine($"[SelfBuildService] 源目录: {Path.GetDirectoryName(uiDir)}");
-            
-            await Task.Run(() => 
-            {
-                try
-                {
-                    // 确保目标文件不存在
-                    if (File.Exists(zipPath))
-                    {
-                        File.Delete(zipPath);
-                    }
-                    
-                    // 手动创建 ZIP，跳过被占用的文件
-                    using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
-                    {
-                        var sourceDir = Path.GetDirectoryName(uiDir)!;
-                        AddDirectoryToZip(archive, sourceDir, sourceDir);
-                    }
-                    
-                    Debug.WriteLine($"[SelfBuildService] 压缩完成");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[SelfBuildService] 压缩失败: {ex.Message}");
-                    throw;
-                }
-            });
-            
-            // 验证 ZIP 文件
-            var zipInfo = new FileInfo(zipPath);
-            Debug.WriteLine($"[SelfBuildService] ZIP 文件大小: {zipInfo.Length} 字节");
-            
-            if (zipInfo.Length < 1000)
-            {
-                throw new InvalidOperationException($"ZIP 文件太小 ({zipInfo.Length} 字节)，可能创建失败");
-            }
-
-            // 清理临时目录
-            try { Directory.Delete(uiDir, true); } catch { }
-
-            lock (_lock) { _cachedZipPath = zipPath; }
-            return zipPath;
+            return null;
         }
 
         /// <summary>
@@ -193,6 +290,13 @@ namespace InstallationSolution.Services
                     continue;
                 }
                 
+                // 跳过不需要的大型文件以减小体积
+                if (ShouldExcludeFile(file.Name))
+                {
+                    Debug.WriteLine($"[SelfBuildService] 跳过大型文件: {file.Name}");
+                    continue;
+                }
+                
                 try
                 {
                     var entryName = Path.GetRelativePath(baseDir, file.FullName).Replace('\\', '/');
@@ -216,8 +320,47 @@ namespace InstallationSolution.Services
             
             foreach (var subDir in dir.GetDirectories())
             {
+                // 跳过不需要的语言包目录（只保留中文和英文）
+                if (IsLanguageDirectory(subDir.Name) && !IsNeededLanguage(subDir.Name))
+                {
+                    Debug.WriteLine($"[SelfBuildService] 跳过语言包: {subDir.Name}");
+                    continue;
+                }
+                
                 AddDirectoryToZip(archive, subDir.FullName, baseDir);
             }
+        }
+
+        private static bool IsLanguageDirectory(string dirName)
+        {
+            // 匹配语言代码格式：xx-XX
+            return System.Text.RegularExpressions.Regex.IsMatch(dirName, @"^[a-z]{2}-[A-Z]{2}");
+        }
+
+        private static bool IsNeededLanguage(string dirName)
+        {
+            // 只保留中文和英文
+            var needed = new[] { "zh-CN", "zh-TW", "zh-Hans", "zh-Hant", "en-US", "en-us", "en-GB" };
+            return needed.Any(lang => dirName.Equals(lang, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool ShouldExcludeFile(string fileName)
+        {
+            // 排除不需要的大型文件
+            var excludeList = new[]
+            {
+                // AI/ML 相关（如果不使用）
+                "onnxruntime.dll",      // 20 MB
+                "DirectML.dll",         // 17 MB
+                // 调试文件
+                ".pdb",
+                // 其他不需要的文件
+                "vs.appxrecipe"
+            };
+            
+            return excludeList.Any(exclude => 
+                fileName.Equals(exclude, StringComparison.OrdinalIgnoreCase) ||
+                fileName.EndsWith(exclude, StringComparison.OrdinalIgnoreCase));
         }
 
         private static void CopyDirectory(string sourceDir, string destDir, string? excludeDir = null)

@@ -1,10 +1,12 @@
 {
   "profiles": {
-    "Installer (Package)": {
-      "commandName": "MsixPackage"
+    "InstallationSolution (Package)": {
+      "commandName": "MsixPackage",
+      "commandLineArgs": ""
     },
-    "Installer (Unpackaged)": {
-      "commandName": "Project"
+    "InstallationSolution (Unpackaged)": {
+      "commandName": "Project",
+      "commandLineArgs": ""
     }
   }
 }

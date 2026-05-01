@@ -14,6 +14,10 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- 优化体积 - 只在自包含模式下启用压缩 -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- 移除 EnableCompressionInSingleFile，因为非自包含模式不支持 -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <ItemGroup>

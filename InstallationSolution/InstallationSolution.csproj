@@ -9,18 +9,27 @@
 		<RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 		<UseWinUI>true</UseWinUI>
 		<WinUISDKReferences>false</WinUISDKReferences>
+		<!-- 启用 MSIX 工具用于打包发布 -->
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<!-- 只保留需要的语言 -->
-		<SatelliteResourceLanguages>en;zh-Hans;zh-Hant</SatelliteResourceLanguages>
+		<SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+		<!-- 默认使用 MSIX 打包模式（用于生成器发布） -->
+		<!-- 生成安装器时会通过 dotnet publish 参数覆盖为非打包模式 -->
+		<WindowsPackageType>MSIX</WindowsPackageType>
 		<!-- 发布配置 -->
 		<PublishAot>false</PublishAot>
 		<PublishSingleFile>false</PublishSingleFile>
 		<SelfContained>false</SelfContained>
-		<!-- 关键：包含 Windows App SDK 运行时，使其可以从临时目录运行 -->
+		<!-- 默认自包含 Windows App SDK（生成安装器时会覆盖） -->
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+		<Platform>x64</Platform>
 		<IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
+		<!-- 优化体积 -->
+		<PublishTrimmed>false</PublishTrimmed>
+		<TrimMode>partial</TrimMode>
+		<WindowsAppSDKDeploymentManagerInitialize>false</WindowsAppSDKDeploymentManagerInitialize>
 	</PropertyGroup>
 
 	<!-- Guard 源码打包到应用目录的 GuardSource 子目录 -->
@@ -90,6 +99,13 @@
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1721" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
+	</ItemGroup>
+
+	<!-- 排除不需要的运行时组件以减小体积 -->
+	<ItemGroup>
+		<RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="false" />
+		<!-- 如果不使用这些功能，可以排除 -->
+		<TrimmerRootAssembly Include="InstallationSolution" />
 	</ItemGroup>
 
 	<ItemGroup>

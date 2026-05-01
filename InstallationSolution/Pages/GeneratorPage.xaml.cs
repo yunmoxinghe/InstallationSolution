@@ -135,7 +135,7 @@ namespace InstallationSolution.Pages
             try
             {
                 // 首次生成时预构建 InstallerUI.zip
-                ShowStatus(InfoBarSeverity.Informational, "准备中", "正在构建 InstallerUI.zip...");
+                ShowStatus(InfoBarSeverity.Informational, "准备中", "正在构建非打包版本的 InstallerUI，这可能需要 30-60 秒...");
                 await SelfBuildService.GetOrBuildInstallerUIZipAsync();
                 
                 ShowStatus(InfoBarSeverity.Informational, "构建中", "正在编译安装器...");
@@ -147,7 +147,11 @@ namespace InstallationSolution.Pages
             }
             catch (Exception ex)
             {
-                ShowStatus(InfoBarSeverity.Error, "生成失败", ex.Message);
+                var errorMsg = ex.InnerException != null 
+                    ? $"{ex.Message}\n\n详细信息: {ex.InnerException.Message}" 
+                    : ex.Message;
+                ShowStatus(InfoBarSeverity.Error, "生成失败", errorMsg);
+                Debug.WriteLine($"[GeneratorPage] 生成失败: {ex}");
             }
             finally
             {
