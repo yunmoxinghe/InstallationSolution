@@ -18,7 +18,8 @@
 		<PublishAot>false</PublishAot>
 		<PublishSingleFile>false</PublishSingleFile>
 		<SelfContained>false</SelfContained>
-		<WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+		<!-- 关键：包含 Windows App SDK 运行时，使其可以从临时目录运行 -->
+		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
 	</PropertyGroup>
 

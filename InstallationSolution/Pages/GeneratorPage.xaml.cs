@@ -134,6 +134,11 @@ namespace InstallationSolution.Pages
 
             try
             {
+                // 首次生成时预构建 InstallerUI.zip
+                ShowStatus(InfoBarSeverity.Informational, "准备中", "正在构建 InstallerUI.zip...");
+                await SelfBuildService.GetOrBuildInstallerUIZipAsync();
+                
+                ShowStatus(InfoBarSeverity.Informational, "构建中", "正在编译安装器...");
                 string exePath = await Task.Run(() => RunBuild());
                 _lastBuiltExePath = exePath;
                 ShowStatus(InfoBarSeverity.Success, "生成成功", $"输出到：{_outputPath}");
@@ -153,72 +158,131 @@ namespace InstallationSolution.Pages
 
         private string RunBuild()
         {
-            // Guard 源码在应用安装目录的 GuardSource 子目录
-            var installDir = Package.Current.InstalledLocation.Path;
-            var guardSrc = Path.Combine(installDir, "GuardSource");
-            var csproj = Path.Combine(guardSrc, "InstallerGuard.csproj");
-            var payloadDir = Path.Combine(guardSrc, "Payload");
+            // 创建临时的 GuardSource 目录（包含完整的 Payload）
+            var tempGuardSrc = Path.Combine(Path.GetTempPath(), "GuardSource_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempGuardSrc);
 
-            if (!File.Exists(csproj))
-                throw new FileNotFoundException($"找不到 Guard 源码：{csproj}");
-
-            // 确保 Payload 目录存在
-            Directory.CreateDirectory(payloadDir);
-
-            // 清理旧的 payload 文件
-            foreach (var f in Directory.GetFiles(payloadDir, "*.msix")) File.Delete(f);
-            foreach (var f in Directory.GetFiles(payloadDir, "*.msixbundle")) File.Delete(f);
-            foreach (var f in Directory.GetFiles(payloadDir, "*.appx")) File.Delete(f);
-            foreach (var f in Directory.GetFiles(payloadDir, "*.appxbundle")) File.Delete(f);
-
-            // 使用自举式构建：运行时将当前应用打包成 InstallerUI.zip
-            SelfBuildService.CopyToPayloadAsync(payloadDir).GetAwaiter().GetResult();
-
-            // 复制用户选择的 msix
-            var msixFileName = Path.GetFileName(_msixPath!);
-            File.Copy(_msixPath!, Path.Combine(payloadDir, msixFileName), overwrite: true);
-
-            // dotnet publish
-            var outputExeName = Path.GetFileNameWithoutExtension(_msixPath!) + "_Installer.exe";
-            var publishOut = Path.Combine(Path.GetTempPath(), "GuardPublish_" + Guid.NewGuid().ToString("N"));
-
-            var psi = new ProcessStartInfo
+            try
             {
-                FileName = "dotnet",
-                Arguments = $"publish \"{csproj}\" -r win-x64 -c Release -o \"{publishOut}\" --no-self-contained",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-            };
+                // 从应用安装目录复制 Guard 源码
+                var installDir = Package.Current.InstalledLocation.Path;
+                var sourceGuardSrc = Path.Combine(installDir, "GuardSource");
+                
+                Debug.WriteLine($"[RunBuild] installDir: {installDir}");
+                Debug.WriteLine($"[RunBuild] sourceGuardSrc: {sourceGuardSrc}");
+                Debug.WriteLine($"[RunBuild] tempGuardSrc: {tempGuardSrc}");
 
-            using var proc = Process.Start(psi)
-                ?? throw new Exception("无法启动 dotnet publish");
+                if (!Directory.Exists(sourceGuardSrc))
+                    throw new DirectoryNotFoundException($"找不到 Guard 源码目录：{sourceGuardSrc}");
 
-            var stdout = proc.StandardOutput.ReadToEnd();
-            var stderr = proc.StandardError.ReadToEnd();
-            proc.WaitForExit();
+                // 复制所有 Guard 源文件
+                foreach (var file in Directory.GetFiles(sourceGuardSrc))
+                {
+                    var fileName = Path.GetFileName(file);
+                    File.Copy(file, Path.Combine(tempGuardSrc, fileName), overwrite: true);
+                }
 
-            if (proc.ExitCode != 0)
-                throw new Exception($"dotnet publish 失败 (exit {proc.ExitCode}):\n{stderr}\n{stdout}");
+                var csproj = Path.Combine(tempGuardSrc, "InstallerGuard.csproj");
+                if (!File.Exists(csproj))
+                    throw new FileNotFoundException($"找不到 Guard 项目文件：{csproj}");
 
-            // 找到产物 exe 并复制到输出目录
-            var exeFiles = Directory.GetFiles(publishOut, "InstallerGuard.exe", SearchOption.AllDirectories);
-            if (exeFiles.Length == 0)
-                throw new FileNotFoundException("找不到编译产物 InstallerGuard.exe");
+                // 创建 Payload 目录
+                var payloadDir = Path.Combine(tempGuardSrc, "Payload");
+                Directory.CreateDirectory(payloadDir);
+                Debug.WriteLine($"[RunBuild] payloadDir: {payloadDir}");
 
-            var destPath = Path.Combine(_outputPath!, outputExeName);
-            File.Copy(exeFiles[0], destPath, overwrite: true);
+                // 使用自举式构建：运行时将当前应用打包成 InstallerUI.zip
+                Debug.WriteLine($"[RunBuild] 开始复制 InstallerUI.zip 到 Payload");
+                SelfBuildService.CopyToPayloadAsync(payloadDir).GetAwaiter().GetResult();
+                Debug.WriteLine($"[RunBuild] InstallerUI.zip 复制完成");
+                
+                // 验证文件是否存在
+                var installerUIZip = Path.Combine(payloadDir, "InstallerUI.zip");
+                if (!File.Exists(installerUIZip))
+                    throw new FileNotFoundException($"InstallerUI.zip 未能复制到 Payload: {installerUIZip}");
+                
+                Debug.WriteLine($"[RunBuild] InstallerUI.zip 大小: {new FileInfo(installerUIZip).Length} bytes");
 
-            // 清理临时 publish 目录
-            try { Directory.Delete(publishOut, true); } catch { }
+                Debug.WriteLine($"[RunBuild] InstallerUI.zip 大小: {new FileInfo(installerUIZip).Length} bytes");
 
-            // 如果输出到桌面，刷新桌面图标
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            if (string.Equals(Path.GetFullPath(_outputPath!), Path.GetFullPath(desktop), StringComparison.OrdinalIgnoreCase))
-                SHChangeNotify(0x8000000, 0x1000, IntPtr.Zero, IntPtr.Zero);
+                // 复制用户选择的 msix
+                var msixFileName = Path.GetFileName(_msixPath!);
+                File.Copy(_msixPath!, Path.Combine(payloadDir, msixFileName), overwrite: true);
+                Debug.WriteLine($"[RunBuild] 已复制用户 msix: {msixFileName}");
 
-            return destPath;
+                // dotnet publish
+                var outputExeName = Path.GetFileNameWithoutExtension(_msixPath!) + "_Installer.exe";
+                var publishOut = Path.Combine(Path.GetTempPath(), "GuardPublish_" + Guid.NewGuid().ToString("N"));
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"publish \"{csproj}\" -r win-x64 -c Release -o \"{publishOut}\" --no-self-contained",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                };
+
+                Debug.WriteLine($"[RunBuild] 开始 dotnet publish");
+                Debug.WriteLine($"[RunBuild] 命令: {psi.FileName} {psi.Arguments}");
+
+                using var proc = Process.Start(psi)
+                    ?? throw new Exception("无法启动 dotnet publish");
+
+                var stdout = proc.StandardOutput.ReadToEnd();
+                var stderr = proc.StandardError.ReadToEnd();
+                proc.WaitForExit();
+
+                // 保存构建日志到桌面用于调试
+                var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dotnet_publish_log.txt");
+                File.WriteAllText(logPath, $"=== STDOUT ===\n{stdout}\n\n=== STDERR ===\n{stderr}\n\n=== Exit Code ===\n{proc.ExitCode}");
+                Debug.WriteLine($"[RunBuild] 构建日志已保存到: {logPath}");
+
+                if (proc.ExitCode != 0)
+                {
+                    Debug.WriteLine($"[RunBuild] dotnet publish 失败");
+                    Debug.WriteLine($"[RunBuild] stdout: {stdout}");
+                    Debug.WriteLine($"[RunBuild] stderr: {stderr}");
+                    throw new Exception($"dotnet publish 失败 (exit {proc.ExitCode}):\n{stderr}\n{stdout}");
+                }
+
+                Debug.WriteLine($"[RunBuild] dotnet publish 成功");
+
+                // 找到产物 exe 并复制到输出目录
+                var exeFiles = Directory.GetFiles(publishOut, "InstallerGuard.exe", SearchOption.AllDirectories);
+                if (exeFiles.Length == 0)
+                    throw new FileNotFoundException("找不到编译产物 InstallerGuard.exe");
+
+                var destPath = Path.Combine(_outputPath!, outputExeName);
+                File.Copy(exeFiles[0], destPath, overwrite: true);
+                Debug.WriteLine($"[RunBuild] 已复制到输出目录: {destPath}");
+
+                // 清理临时 publish 目录
+                try { Directory.Delete(publishOut, true); } catch { }
+
+                // 如果输出到桌面，刷新桌面图标
+                var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                if (string.Equals(Path.GetFullPath(_outputPath!), Path.GetFullPath(desktop), StringComparison.OrdinalIgnoreCase))
+                    SHChangeNotify(0x8000000, 0x1000, IntPtr.Zero, IntPtr.Zero);
+
+                return destPath;
+            }
+            finally
+            {
+                // 暂时不清理，用于调试
+                Debug.WriteLine($"[RunBuild] 临时目录保留用于调试: {tempGuardSrc}");
+                // TODO: 调试完成后恢复清理
+                // try 
+                // { 
+                //     Directory.Delete(tempGuardSrc, true);
+                //     Debug.WriteLine($"[RunBuild] 已清理临时目录: {tempGuardSrc}");
+                // } 
+                // catch (Exception ex)
+                // {
+                //     Debug.WriteLine($"[RunBuild] 清理临时目录失败: {ex.Message}");
+                // }
+            }
         }
 
         // ── 通知 ─────────────────────────────────────────────────────
