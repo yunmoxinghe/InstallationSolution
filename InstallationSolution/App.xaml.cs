@@ -62,6 +62,8 @@ namespace InstallationSolution
                 }
 
                 // 根据启动方式决定显示哪个界面
+                string? filePathToLoad = null;
+                
                 if (!string.IsNullOrEmpty(MsixPath))
                 {
                     // 有参数：显示安装器界面（InstallerUI功能）
@@ -70,17 +72,10 @@ namespace InstallationSolution
                 else
                 {
                     // 检查是否是文件激活
-                    var filePath = ExtractFilePathFromActivation(AppInstance.GetCurrent().GetActivatedEventArgs());
-                    if (filePath != null)
-                    {
-                        // 文件激活：加载文件到生成器
-                        ((MainWindow)MainWindow).LoadFileToGenerator(filePath);
-                    }
-                    else
-                    {
-                        // 无参数：显示生成器界面（InstallerGenerator功能）
-                        ((MainWindow)MainWindow).NavigateToGenerator();
-                    }
+                    filePathToLoad = ExtractFilePathFromActivation(AppInstance.GetCurrent().GetActivatedEventArgs());
+                    
+                    // 显示启动屏幕，然后导航到生成器
+                    ((MainWindow)MainWindow).ShowSplashForGenerator(filePathToLoad);
                 }
             });
         }

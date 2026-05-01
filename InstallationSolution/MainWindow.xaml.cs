@@ -102,25 +102,36 @@ namespace InstallationSolution
             DismissGuardToast();
         }
 
-        public void NavigateToGenerator()
+        public async void ShowSplashForGenerator(string? filePathToLoad)
         {
-            // 导航到生成器主界面
-            ContentFrame.Navigate(typeof(GeneratorPage));
-        }
+            SplashOverlay.Visibility = Visibility.Visible;
+            SplashOverlay.Opacity = 1;
 
-        public void LoadFileToGenerator(string filePath)
-        {
-            // 导航到生成器并加载文件
+            await Task.Delay(100);
+            SplashFadeIn.Begin();
+
+            await Task.Delay(1500);
+
+            var tcs = new TaskCompletionSource<bool>();
+            SplashFadeOut.Completed += (s, e) => tcs.SetResult(true);
+            SplashFadeOut.Begin();
+            await tcs.Task;
+
+            SplashOverlay.Visibility = Visibility.Collapsed;
+            await Task.Delay(16);
+
+            // 导航到生成器
             ContentFrame.Navigate(typeof(GeneratorPage));
-            
-            // 等待页面加载完成后设置文件
-            ContentFrame.DispatcherQueue.TryEnqueue(() =>
+
+            // 如果有文件路径，加载文件
+            if (!string.IsNullOrEmpty(filePathToLoad))
             {
+                await Task.Delay(100); // 等待页面完全加载
                 if (ContentFrame.Content is GeneratorPage page)
                 {
-                    page.LoadFile(filePath);
+                    page.LoadFile(filePathToLoad);
                 }
-            });
+            }
         }
 
         private static void DismissGuardToast()
