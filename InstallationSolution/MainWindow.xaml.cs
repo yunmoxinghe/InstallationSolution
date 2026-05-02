@@ -9,6 +9,7 @@ using Windows.System;
 using WinRT.Interop;
 using InstallationSolution.Pages;
 using InstallationSolution.Dialogs;
+using InstallationSolution.Constants;
 
 namespace InstallationSolution
 {
@@ -43,8 +44,8 @@ namespace InstallationSolution
             this.Closed += MainWindow_Closed;
 
             // 默认窗口尺寸对齐 APK-Installer：652×414，DPI 感知
-            SetWindowSize(_hwnd, 652, 414);
-            SetMinWindowSize(_hwnd, minWidth: 652, minHeight: 414);
+            SetWindowSize(_hwnd, AppConfig.DefaultWindowWidth, AppConfig.DefaultWindowHeight);
+            SetMinWindowSize(_hwnd, minWidth: AppConfig.MinWindowWidth, minHeight: AppConfig.MinWindowHeight);
         }
 
         private AppWindow GetAppWindowForCurrentWindow()

@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using InstallationSolution.Constants;
 
 namespace InstallationSolution.Services
 {
@@ -29,18 +30,21 @@ namespace InstallationSolution.Services
                     {
                         // 验证缓存文件
                         var cachedSize = new FileInfo(_cachedZipPath).Length;
-                        if (cachedSize > 1000000) // 大于 1MB
+                        if (cachedSize > AppConfig.MinValidZipSizeBytes)
                         {
                             Debug.WriteLine($"[SelfBuildService] 使用缓存: {_cachedZipPath} ({cachedSize} 字节)");
                             return _cachedZipPath;
                         }
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[SelfBuildService] 缓存验证失败: {ex.Message}");
+                    }
                 }
             }
 
             // 构建非打包版本的 InstallerUI
-            var tempBuildDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_NonPackaged_" + Guid.NewGuid().ToString("N"));
+            var tempBuildDir = Path.Combine(Path.GetTempPath(), AppConfig.TempBuildDirPrefix + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempBuildDir);
 
             try
@@ -126,10 +130,10 @@ namespace InstallationSolution.Services
                 Debug.WriteLine($"[SelfBuildService] InstallationSolution.pri 存在: {File.Exists(priFile)}");
                 
                 // 创建 ZIP
-                var tempDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_SelfBuild");
+                var tempDir = Path.Combine(Path.GetTempPath(), AppConfig.TempSelfBuildDir);
                 Directory.CreateDirectory(tempDir);
                 
-                var zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
+                var zipPath = Path.Combine(tempDir, string.Format(AppConfig.InstallerUIZipPattern, Guid.NewGuid().ToString("N")));
                 Debug.WriteLine($"[SelfBuildService] 创建 ZIP: {zipPath}");
                 
                 // 创建 InstallerUI 目录结构
@@ -153,7 +157,7 @@ namespace InstallationSolution.Services
                     var deleted = await TryDeleteFileAsync(zipPath);
                     if (!deleted)
                     {
-                        zipPath = Path.Combine(tempDir, $"InstallerUI_{Guid.NewGuid():N}.zip");
+                        zipPath = Path.Combine(tempDir, string.Format(AppConfig.InstallerUIZipPattern, Guid.NewGuid().ToString("N")));
                     }
                 }
                 
@@ -187,7 +191,7 @@ namespace InstallationSolution.Services
                 var zipInfo = new FileInfo(zipPath);
                 Debug.WriteLine($"[SelfBuildService] ZIP 文件大小: {zipInfo.Length} 字节 ({zipInfo.Length / 1024.0 / 1024.0:F2} MB)");
                 
-                if (zipInfo.Length < 1000)
+                if (zipInfo.Length < AppConfig.MinValidZipSizeBytes)
                 {
                     throw new InvalidOperationException($"ZIP 文件太小 ({zipInfo.Length} 字节)，可能创建失败");
                 }
@@ -239,7 +243,7 @@ namespace InstallationSolution.Services
             Debug.WriteLine($"[SelfBuildService] zipPath: {zipPath}");
             Debug.WriteLine($"[SelfBuildService] zipPath exists: {File.Exists(zipPath)}");
             
-            var destPath = Path.Combine(payloadDir, "InstallerUI.zip");
+            var destPath = Path.Combine(payloadDir, AppConfig.InstallerUIZipName);
             Debug.WriteLine($"[SelfBuildService] destPath: {destPath}");
 
             Directory.CreateDirectory(payloadDir);
@@ -248,11 +252,19 @@ namespace InstallationSolution.Services
             // 如果目标文件存在，先删除
             if (File.Exists(destPath))
             {
-                try { File.Delete(destPath); Debug.WriteLine($"[SelfBuildService] 已删除旧文件"); } catch { }
+                try 
+                { 
+                    File.Delete(destPath); 
+                    Debug.WriteLine($"[SelfBuildService] 已删除旧文件"); 
+                } 
+                catch (Exception ex) 
+                { 
+                    Debug.WriteLine($"[SelfBuildService] 删除旧文件失败: {ex.Message}"); 
+                }
             }
 
-            // 重试机制：最多尝试 3 次
-            for (int i = 0; i < 3; i++)
+            // 重试机制：最多尝试配置的次数
+            for (int i = 0; i < AppConfig.MaxRetryAttempts; i++)
             {
                 try
                 {
@@ -261,11 +273,11 @@ namespace InstallationSolution.Services
                     Debug.WriteLine($"[SelfBuildService] 目标文件大小: {new FileInfo(destPath).Length} bytes");
                     return;
                 }
-                catch (IOException ex) when (i < 2)
+                catch (IOException ex) when (i < AppConfig.MaxRetryAttempts - 1)
                 {
                     Debug.WriteLine($"[SelfBuildService] 复制失败 (尝试 {i + 1}): {ex.Message}");
                     // 等待后重试
-                    await Task.Delay(200);
+                    await Task.Delay(AppConfig.FileOperationRetryDelayMs);
                 }
                 catch (Exception ex)
                 {
@@ -301,13 +313,13 @@ namespace InstallationSolution.Services
                 {
                     var entryName = Path.GetRelativePath(baseDir, file.FullName).Replace('\\', '/');
                     
-                    // 使用共享读取模式打开文件
-                    using (var fileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    // 使用共享读取模式打开文件，并指定缓冲区大小
+                    using (var fileStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, AppConfig.StreamCopyBufferSize))
                     {
                         var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
                         using (var entryStream = entry.Open())
                         {
-                            fileStream.CopyTo(entryStream);
+                            fileStream.CopyTo(entryStream, AppConfig.StreamCopyBufferSize);
                         }
                     }
                 }
@@ -377,11 +389,11 @@ namespace InstallationSolution.Services
                 {
                     var targetPath = Path.Combine(destDir, file.Name);
                     
-                    // 使用文件共享模式复制，允许其他进程读取
-                    using (var sourceStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var destStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    // 使用文件共享模式复制，允许其他进程读取，并指定缓冲区大小
+                    using (var sourceStream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, AppConfig.StreamCopyBufferSize))
+                    using (var destStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None, AppConfig.StreamCopyBufferSize))
                     {
-                        sourceStream.CopyTo(destStream);
+                        sourceStream.CopyTo(destStream, AppConfig.StreamCopyBufferSize);
                     }
                 }
                 catch (Exception ex)
@@ -405,7 +417,7 @@ namespace InstallationSolution.Services
         /// <summary>
         /// 安全删除文件，带重试机制
         /// </summary>
-        private static async Task<bool> TryDeleteFileAsync(string filePath, int maxRetries = 5)
+        private static async Task<bool> TryDeleteFileAsync(string filePath, int maxRetries = AppConfig.FileDeleteMaxRetries)
         {
             for (int i = 0; i < maxRetries; i++)
             {
@@ -423,7 +435,7 @@ namespace InstallationSolution.Services
                     Debug.WriteLine($"[SelfBuildService] 删除文件失败 (尝试 {i + 1}/{maxRetries}): {ex.Message}");
                     if (i < maxRetries - 1)
                     {
-                        await Task.Delay(500); // 等待更长时间
+                        await Task.Delay(AppConfig.FileDeleteRetryDelayMs);
                         GC.Collect(); // 强制垃圾回收，释放文件句柄
                         GC.WaitForPendingFinalizers();
                     }
@@ -444,18 +456,28 @@ namespace InstallationSolution.Services
         {
             try
             {
-                var tempDir = Path.Combine(Path.GetTempPath(), "InstallationSolution_SelfBuild");
+                var tempDir = Path.Combine(Path.GetTempPath(), AppConfig.TempSelfBuildDir);
                 if (Directory.Exists(tempDir))
                 {
                     // 删除所有旧的 ZIP 文件
                     foreach (var file in Directory.GetFiles(tempDir, "InstallerUI*.zip"))
                     {
-                        try { File.Delete(file); } catch { }
+                        try 
+                        { 
+                            File.Delete(file); 
+                        } 
+                        catch (Exception ex) 
+                        { 
+                            Debug.WriteLine($"[SelfBuildService] 删除缓存文件失败: {ex.Message}"); 
+                        }
                     }
                 }
                 lock (_lock) { _cachedZipPath = null; }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SelfBuildService] 清理缓存失败: {ex.Message}");
+            }
         }
     }
 }

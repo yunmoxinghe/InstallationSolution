@@ -1,4 +1,5 @@
 using InstallationSolution.Models;
+using InstallationSolution.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -110,6 +111,8 @@ namespace InstallationSolution.Pages
                 return;
             }
 
+            var installCompleted = false;
+
             try
             {
                 StatusText.Text = "正在验证证书...";
@@ -141,8 +144,11 @@ namespace InstallationSolution.Pages
                 var uri = new Uri(_msixPath);
                 var op  = pm.AddPackageAsync(uri, null, DeploymentOptions.ForceApplicationShutdown);
 
+                var lastProgress = 0.0;
                 op.Progress = (_, progress) =>
                 {
+                    lastProgress = progress.percentage;
+                    // 使用 DispatcherQueue 更新 UI
                     DispatcherQueue.TryEnqueue(() =>
                     {
                         InstallProgressBar.IsIndeterminate = progress.percentage >= 99;
@@ -153,15 +159,40 @@ namespace InstallationSolution.Pages
                 };
 
                 var result = await op.AsTask();
+                installCompleted = true;
 
-                if (result.ExtendedErrorCode == null || result.ExtendedErrorCode.HResult == 0)
-                    ShowResult(success: true);
-                else
-                    ShowResult(success: false, errorMessage: result.ErrorText ?? "安装失败，原因未知。");
+                // 确保在 UI 线程上显示结果
+                await DispatcherQueue.EnqueueAsync(() =>
+                {
+                    if (result.ExtendedErrorCode == null || result.ExtendedErrorCode.HResult == 0)
+                        ShowResult(success: true);
+                    else
+                        ShowResult(success: false, errorMessage: result.ErrorText ?? "安装失败，原因未知。");
+                });
             }
             catch (Exception ex)
             {
-                ShowResult(success: false, errorMessage: ex.Message);
+                installCompleted = true;
+                // 确保在 UI 线程上显示错误
+                await DispatcherQueue.EnqueueAsync(() =>
+                {
+                    ShowResult(success: false, errorMessage: ex.Message);
+                });
+            }
+            finally
+            {
+                // 安全措施：如果安装完成但 UI 没有更新（超时 2 秒），强制显示结果
+                if (installCompleted)
+                {
+                    await Task.Delay(2000);
+                    if (ResultContainer.Visibility != Visibility.Visible)
+                    {
+                        await DispatcherQueue.EnqueueAsync(() =>
+                        {
+                            ShowResult(success: true);
+                        });
+                    }
+                }
             }
         }
 
@@ -210,33 +241,30 @@ namespace InstallationSolution.Pages
 
         private void ShowResult(bool success, string? errorMessage = null)
         {
-            DispatcherQueue.TryEnqueue(() =>
+            InstallingContainer.Visibility = Visibility.Collapsed;
+            ProgressContainer.Visibility   = Visibility.Collapsed;
+            ResultContainer.Visibility     = Visibility.Visible;
+            CloseButton.Visibility         = Visibility.Visible;
+
+            if (success)
             {
-                InstallingContainer.Visibility = Visibility.Collapsed;
-                ProgressContainer.Visibility   = Visibility.Collapsed;
-                ResultContainer.Visibility     = Visibility.Visible;
-                CloseButton.Visibility         = Visibility.Visible;
+                ResultTitle.Text    = "安装成功";
+                ResultSubtitle.Text = "应用已成功安装到此设备。";
 
-                if (success)
+                _packageName = ReadPackageIdentityName(_msixPath);
+                if (_packageName != null)
+                    LaunchButton.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ResultTitle.Text    = "安装失败";
+                ResultSubtitle.Text = "安装过程中发生错误。";
+                if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    ResultTitle.Text    = "安装成功";
-                    ResultSubtitle.Text = "应用已成功安装到此设备。";
-
-                    _packageName = ReadPackageIdentityName(_msixPath);
-                    if (_packageName != null)
-                        LaunchButton.Visibility = Visibility.Visible;
+                    ErrorInfoBar.IsOpen  = true;
+                    ErrorInfoBar.Message = errorMessage;
                 }
-                else
-                {
-                    ResultTitle.Text    = "安装失败";
-                    ResultSubtitle.Text = "安装过程中发生错误。";
-                    if (!string.IsNullOrEmpty(errorMessage))
-                    {
-                        ErrorInfoBar.IsOpen  = true;
-                        ErrorInfoBar.Message = errorMessage;
-                    }
-                }
-            });
+            }
         }
 
         private async void LaunchButton_Click(object sender, RoutedEventArgs e)

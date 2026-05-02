@@ -14,6 +14,8 @@ using Windows.Storage.Pickers;
 using Windows.System;
 using WinRT.Interop;
 using InstallationSolution.Services;
+using InstallationSolution.Constants;
+using InstallationSolution.Helpers;
 
 namespace InstallationSolution.Pages
 {
@@ -29,7 +31,7 @@ namespace InstallationSolution.Pages
             InitializeComponent();
             
             // 恢复上次的输出路径
-            if (_localSettings.Values["LastOutputPath"] is string saved && Directory.Exists(saved))
+            if (_localSettings.Values[AppConfig.LastOutputPathKey] is string saved && Directory.Exists(saved))
             {
                 _outputPath = saved;
                 OutputPathText.Text = saved;
@@ -86,7 +88,7 @@ namespace InstallationSolution.Pages
             _outputPath = folder.Path;
             OutputPathText.Text = folder.Path;
             OutputPathText.Opacity = 1;
-            _localSettings.Values["LastOutputPath"] = folder.Path;
+            _localSettings.Values[AppConfig.LastOutputPathKey] = folder.Path;
             UpdateGenerateButton();
         }
 
@@ -134,6 +136,13 @@ namespace InstallationSolution.Pages
 
             try
             {
+                // 验证 MSIX 文件
+                if (!FileValidator.IsMsixFile(_msixPath!))
+                {
+                    ShowStatus(InfoBarSeverity.Error, "文件无效", "选择的文件不是有效的 MSIX/APPX 安装包");
+                    return;
+                }
+
                 // 首次生成时预构建 InstallerUI.zip
                 ShowStatus(InfoBarSeverity.Informational, "准备中", "正在构建非打包版本的 InstallerUI，这可能需要 30-60 秒...");
                 await SelfBuildService.GetOrBuildInstallerUIZipAsync();
@@ -163,7 +172,7 @@ namespace InstallationSolution.Pages
         private string RunBuild()
         {
             // 创建临时的 GuardSource 目录（包含完整的 Payload）
-            var tempGuardSrc = Path.Combine(Path.GetTempPath(), "GuardSource_" + Guid.NewGuid().ToString("N"));
+            var tempGuardSrc = Path.Combine(Path.GetTempPath(), AppConfig.TempGuardSourcePrefix + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempGuardSrc);
 
             try
@@ -201,12 +210,10 @@ namespace InstallationSolution.Pages
                 Debug.WriteLine($"[RunBuild] InstallerUI.zip 复制完成");
                 
                 // 验证文件是否存在
-                var installerUIZip = Path.Combine(payloadDir, "InstallerUI.zip");
+                var installerUIZip = Path.Combine(payloadDir, AppConfig.InstallerUIZipName);
                 if (!File.Exists(installerUIZip))
                     throw new FileNotFoundException($"InstallerUI.zip 未能复制到 Payload: {installerUIZip}");
                 
-                Debug.WriteLine($"[RunBuild] InstallerUI.zip 大小: {new FileInfo(installerUIZip).Length} bytes");
-
                 Debug.WriteLine($"[RunBuild] InstallerUI.zip 大小: {new FileInfo(installerUIZip).Length} bytes");
 
                 // 复制用户选择的 msix
@@ -216,7 +223,7 @@ namespace InstallationSolution.Pages
 
                 // dotnet publish
                 var outputExeName = Path.GetFileNameWithoutExtension(_msixPath!) + "_Installer.exe";
-                var publishOut = Path.Combine(Path.GetTempPath(), "GuardPublish_" + Guid.NewGuid().ToString("N"));
+                var publishOut = Path.Combine(Path.GetTempPath(), AppConfig.TempGuardPublishPrefix + Guid.NewGuid().ToString("N"));
 
                 var psi = new ProcessStartInfo
                 {
@@ -238,10 +245,14 @@ namespace InstallationSolution.Pages
                 var stderr = proc.StandardError.ReadToEnd();
                 proc.WaitForExit();
 
-                // 保存构建日志到桌面用于调试
-                var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dotnet_publish_log.txt");
+#if DEBUG
+                // 保存构建日志到临时目录用于调试
+                var logDir = Path.Combine(Path.GetTempPath(), "InstallerLogs");
+                Directory.CreateDirectory(logDir);
+                var logPath = Path.Combine(logDir, $"dotnet_publish_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
                 File.WriteAllText(logPath, $"=== STDOUT ===\n{stdout}\n\n=== STDERR ===\n{stderr}\n\n=== Exit Code ===\n{proc.ExitCode}");
                 Debug.WriteLine($"[RunBuild] 构建日志已保存到: {logPath}");
+#endif
 
                 if (proc.ExitCode != 0)
                 {
@@ -274,18 +285,19 @@ namespace InstallationSolution.Pages
             }
             finally
             {
-                // 暂时不清理，用于调试
-                Debug.WriteLine($"[RunBuild] 临时目录保留用于调试: {tempGuardSrc}");
-                // TODO: 调试完成后恢复清理
-                // try 
-                // { 
-                //     Directory.Delete(tempGuardSrc, true);
-                //     Debug.WriteLine($"[RunBuild] 已清理临时目录: {tempGuardSrc}");
-                // } 
-                // catch (Exception ex)
-                // {
-                //     Debug.WriteLine($"[RunBuild] 清理临时目录失败: {ex.Message}");
-                // }
+                // 清理临时目录
+                try 
+                { 
+                    if (Directory.Exists(tempGuardSrc))
+                    {
+                        Directory.Delete(tempGuardSrc, true);
+                        Debug.WriteLine($"[RunBuild] 已清理临时目录: {tempGuardSrc}");
+                    }
+                } 
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[RunBuild] 清理临时目录失败: {ex.Message}");
+                }
             }
         }
 

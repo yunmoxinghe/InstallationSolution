@@ -7,9 +7,14 @@ namespace InstallerGuard
 {
     internal class Program
     {
-        internal const string ToastAppId = "YourInstaller.Guard";
+        // 使用程序集名称作为 AppId，避免硬编码
+        internal static readonly string ToastAppId = $"{Assembly.GetExecutingAssembly().GetName().Name}.Guard";
         internal const string ToastTag   = "installer-loading";
         internal const string ToastGroup = "installer";
+        
+        // 临时目录名称基于程序集名称
+        internal static readonly string TempDirName = Assembly.GetExecutingAssembly().GetName().Name ?? "Installer";
+        internal static readonly string MutexName = $"{TempDirName}Guard";
 
         // 根据系统首选 UI 语言决定用中文还是英文
         static bool IsChinese()
@@ -20,11 +25,55 @@ namespace InstallerGuard
 
         static string S(string zh, string en) => IsChinese() ? zh : en;
 
+        /// <summary>
+        /// 获取调试日志路径（仅在 DEBUG 模式下使用）
+        /// </summary>
+        static string GetDebugLogPath(string fileName)
+        {
+            var logDir = Path.Combine(Path.GetTempPath(), "InstallerLogs");
+            Directory.CreateDirectory(logDir);
+            return Path.Combine(logDir, fileName);
+        }
+
+        /// <summary>
+        /// 安全地提取 ZIP 文件，防止路径遍历攻击
+        /// </summary>
+        static void SafeExtractZip(ZipArchive archive, string destinationPath)
+        {
+            var fullDestPath = Path.GetFullPath(destinationPath);
+
+            foreach (var entry in archive.Entries)
+            {
+                // 跳过目录条目
+                if (string.IsNullOrEmpty(entry.Name))
+                    continue;
+
+                var entryPath = Path.Combine(destinationPath, entry.FullName);
+                var fullEntryPath = Path.GetFullPath(entryPath);
+
+                // 验证路径安全性
+                if (!fullEntryPath.StartsWith(fullDestPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException($"检测到路径遍历攻击: {entry.FullName}");
+                }
+
+                // 创建目录
+                var entryDir = Path.GetDirectoryName(fullEntryPath);
+                if (!string.IsNullOrEmpty(entryDir))
+                {
+                    Directory.CreateDirectory(entryDir);
+                }
+
+                // 提取文件
+                entry.ExtractToFile(fullEntryPath, overwrite: true);
+            }
+        }
+
         [DllImport("kernel32.dll")] static extern bool MoveFileEx(string lpExistingFileName, string? lpNewFileName, uint dwFlags);
 
         static void Main(string[] args)
         {
-            using var mutex = new Mutex(true, "YourInstallerGuard", out bool created);
+            using var mutex = new Mutex(true, MutexName, out bool created);
             if (!created) return;
 
             try
@@ -37,28 +86,42 @@ namespace InstallerGuard
 
                 // 调试：列出所有嵌入的资源
                 var allResources = assembly.GetManifestResourceNames();
-                var debugLog = Path.Combine(Path.GetTempPath(), "InstallerGuard_Debug.txt");
+                
+#if DEBUG
+                var debugLog = GetDebugLogPath("InstallerGuard_Debug.txt");
                 var debugInfo = $"所有嵌入的资源:\n{string.Join("\n", allResources)}\n\n查找的资源名: {resourceName}\n\n";
+#endif
 
                 // 先检查资源，避免发出加载 Toast 后立刻换成错误 Toast 的闪烁
                 Stream? rs = null;
                 try
                 {
                     rs = assembly.GetManifestResourceStream(resourceName);
+#if DEBUG
                     debugInfo += $"GetManifestResourceStream 结果: {(rs == null ? "null" : $"成功 (CanRead={rs.CanRead}, Length={rs.Length})")}\n";
+#endif
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
                     debugInfo += $"GetManifestResourceStream 异常: {ex.Message}\n";
+#endif
+                    Debug.WriteLine($"获取资源流失败: {ex.Message}");
                 }
 
+#if DEBUG
                 File.WriteAllText(debugLog, debugInfo);
+#endif
 
                 if (rs == null)
                 {
                     var iconPath0 = ExtractIcon();
                     RegisterAppId(iconPath0);
+#if DEBUG
                     ShowErrorToast(S("缺少安装程序", "Missing Installer"), S($"安装程序文件丢失，请查看 {debugLog}", $"Installer files are missing. Check {debugLog}"));
+#else
+                    ShowErrorToast(S("缺少安装程序", "Missing Installer"), S("安装程序文件丢失", "Installer files are missing"));
+#endif
                     return;
                 }
 
@@ -70,24 +133,36 @@ namespace InstallerGuard
                     ShowLoadingToast();
 
                     // 注册重启时兜底删除（Guard 被强杀时由系统在重启后清理）
-                    RegisterDeleteOnReboot(Path.Combine(Path.GetTempPath(), "YourInstaller"));
-                    RegisterDeleteOnReboot(Path.Combine(Path.GetTempPath(), "YourInstaller_icon.png"));
+                    var tempDir = Path.Combine(Path.GetTempPath(), TempDirName);
+                    var iconPathForCleanup = Path.Combine(Path.GetTempPath(), $"{TempDirName}_icon.png");
+                    
+                    RegisterDeleteOnReboot(tempDir);
+                    RegisterDeleteOnReboot(iconPathForCleanup);
                     RegisterRunOnceCleanupRegistry();
 
-                    var tempDir2 = Path.Combine(Path.GetTempPath(), "YourInstaller");
+                    var tempDir2 = tempDir;
+#if DEBUG
                     debugInfo += $"临时目录: {tempDir2}\n";
+#endif
                     
                     if (Directory.Exists(tempDir2)) Directory.Delete(tempDir2, true);
                     Directory.CreateDirectory(tempDir2);
+#if DEBUG
                     debugInfo += "临时目录已创建\n";
+#endif
 
                     try
                     {
                         using (var archive = new ZipArchive(rs, ZipArchiveMode.Read))
                         {
+#if DEBUG
                             debugInfo += $"ZIP 条目数: {archive.Entries.Count}\n";
-                            archive.ExtractToDirectory(tempDir2);
+#endif
+                            // 安全地提取 ZIP 文件，防止路径遍历攻击
+                            SafeExtractZip(archive, tempDir2);
+#if DEBUG
                             debugInfo += "解压完成\n";
+#endif
                         }
                         
                         // 复制 Windows App SDK 运行时 DLL 到根目录
@@ -100,54 +175,72 @@ namespace InstallerGuard
                                 var fileName = Path.GetFileName(dll);
                                 var targetPath = Path.Combine(targetDir, fileName);
                                 File.Copy(dll, targetPath, overwrite: true);
+#if DEBUG
                                 debugInfo += $"复制运行时 DLL: {fileName}\n";
+#endif
                             }
                         }
                         else
                         {
+#if DEBUG
                             debugInfo += "警告: 未找到 runtimes\\win-x64\\native 目录\n";
+#endif
+                            Debug.WriteLine("警告: 未找到 Windows App SDK 运行时 DLL");
                         }
                     }
                     catch (Exception ex)
                     {
+#if DEBUG
                         debugInfo += $"解压失败: {ex.Message}\n";
                         File.WriteAllText(debugLog, debugInfo);
+#endif
                         ShowErrorToast(S("解压失败", "Extract Failed"), ex.Message);
                         return;
                     }
                     
+#if DEBUG
                     File.WriteAllText(debugLog, debugInfo);
+#endif
                 }
 
-                var tempDir = Path.Combine(Path.GetTempPath(), "YourInstaller");
+                // 使用之前声明的 tempDir 变量
+                var tempDirPath = Path.Combine(Path.GetTempPath(), TempDirName);
                 
                 // 查找 exe 文件（可能是 InstallerUI.exe 或 InstallationSolution.exe）
-                var installerExe = Path.Combine(tempDir, "InstallerUI", "InstallerUI.exe");
+                var installerExe = Path.Combine(tempDirPath, "InstallerUI", "InstallerUI.exe");
+#if DEBUG
                 debugInfo += $"查找 exe: {installerExe}\n";
                 debugInfo += $"存在: {File.Exists(installerExe)}\n";
+#endif
                 
                 if (!File.Exists(installerExe))
                 {
-                    installerExe = Path.Combine(tempDir, "InstallerUI", "InstallationSolution.exe");
+                    installerExe = Path.Combine(tempDirPath, "InstallerUI", "InstallationSolution.exe");
+#if DEBUG
                     debugInfo += $"尝试备用: {installerExe}\n";
                     debugInfo += $"存在: {File.Exists(installerExe)}\n";
+#endif
                 }
                 
+#if DEBUG
                 File.WriteAllText(debugLog, debugInfo);
+#endif
                 
                 if (!File.Exists(installerExe))
                 {
                     // 列出实际的文件
-                    var actualFiles = Directory.Exists(Path.Combine(tempDir, "InstallerUI")) 
-                        ? string.Join("\n", Directory.GetFiles(Path.Combine(tempDir, "InstallerUI")).Select(f => Path.GetFileName(f)))
+                    var actualFiles = Directory.Exists(Path.Combine(tempDirPath, "InstallerUI")) 
+                        ? string.Join("\n", Directory.GetFiles(Path.Combine(tempDirPath, "InstallerUI")).Select(f => Path.GetFileName(f)))
                         : "InstallerUI 目录不存在";
                     
                     ShowErrorToast(S("缺少安装程序", "Missing Installer"), S($"找不到 exe。实际文件:\n{actualFiles}", $"exe not found. Files:\n{actualFiles}"));
                     return;
                 }
                 
+#if DEBUG
                 debugInfo += $"准备启动: {installerExe}\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
 
                 var bundleResourceName = assembly.GetManifestResourceNames()
                     .FirstOrDefault(n => n.StartsWith("InstallerGuard.Payload.") &&
@@ -160,10 +253,12 @@ namespace InstallerGuard
                 }
 
                 var bundleFileName = bundleResourceName.Replace("InstallerGuard.Payload.", "");
-                var bundlePath     = Path.Combine(tempDir, "InstallerUI", bundleFileName);
+                var bundlePath     = Path.Combine(tempDirPath, "InstallerUI", bundleFileName);
                 
+#if DEBUG
                 debugInfo += $"提取 msix: {bundleFileName}\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
                 
                 using (var msixStream = assembly.GetManifestResourceStream(bundleResourceName)!)
                 using (var fileStream = File.Create(bundlePath))
@@ -171,8 +266,10 @@ namespace InstallerGuard
                     msixStream.CopyTo(fileStream);
                 }
                 
+#if DEBUG
                 debugInfo += "msix 提取完成\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
                 
                 var msixArg = $"\"{bundlePath}\"";
 
@@ -195,21 +292,27 @@ namespace InstallerGuard
                 psi.Environment["WINDOWSAPPSDK_TRACE_LEVEL"] = "Verbose";
                 psi.Environment["WINDOWSAPPSDK_TRACE_OUTPUT"] = "Console";
 
+#if DEBUG
                 debugInfo += $"启动进程: {installerExe} {msixArg}\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
 
                 var process = Process.Start(psi);
                 
                 if (process == null)
                 {
+#if DEBUG
                     debugInfo += "进程启动失败\n";
                     File.WriteAllText(debugLog, debugInfo);
+#endif
                     ShowErrorToast(S("启动失败", "Start Failed"), S("无法启动安装器", "Cannot start installer"));
                     return;
                 }
                 
+#if DEBUG
                 debugInfo += $"进程已启动，PID: {process.Id}\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
                 
                 // 读取输出
                 var stdout = process.StandardOutput.ReadToEnd();
@@ -217,16 +320,20 @@ namespace InstallerGuard
                 
                 process.WaitForExit();
                 
+#if DEBUG
                 debugInfo += $"进程已退出，退出码: {process.ExitCode}\n";
                 if (!string.IsNullOrEmpty(stdout)) debugInfo += $"标准输出:\n{stdout}\n";
                 if (!string.IsNullOrEmpty(stderr)) debugInfo += $"标准错误:\n{stderr}\n";
                 File.WriteAllText(debugLog, debugInfo);
+#endif
                 
                 if (process.ExitCode != 0)
                 {
+#if DEBUG
                     debugInfo += "进程异常退出，保留临时目录用于调试\n";
                     File.WriteAllText(debugLog, debugInfo);
-                    ShowErrorToast(S("安装器错误", "Installer Error"), S($"退出码: {process.ExitCode}\n临时目录: {tempDir}", $"Exit code: {process.ExitCode}\nTemp dir: {tempDir}"));
+#endif
+                    ShowErrorToast(S("安装器错误", "Installer Error"), S($"退出码: {process.ExitCode}\n临时目录: {tempDirPath}", $"Exit code: {process.ExitCode}\nTemp dir: {tempDirPath}"));
                     // 不清理，方便调试
                     Environment.Exit(process.ExitCode);
                 }
@@ -244,8 +351,27 @@ namespace InstallerGuard
 
         static void Cleanup()
         {
-            try { Directory.Delete(Path.Combine(Path.GetTempPath(), "YourInstaller"), true); } catch { }
-            try { File.Delete(Path.Combine(Path.GetTempPath(), "YourInstaller_icon.png")); } catch { }
+            try 
+            { 
+                var tempDir = Path.Combine(Path.GetTempPath(), TempDirName);
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, true); 
+            } 
+            catch (Exception ex) 
+            { 
+                Debug.WriteLine($"清理临时目录失败: {ex.Message}"); 
+            }
+            
+            try 
+            { 
+                var iconPath = Path.Combine(Path.GetTempPath(), $"{TempDirName}_icon.png");
+                if (File.Exists(iconPath))
+                    File.Delete(iconPath); 
+            } 
+            catch (Exception ex) 
+            { 
+                Debug.WriteLine($"清理图标文件失败: {ex.Message}"); 
+            }
             try
             {
                 RunPowerShell($@"
@@ -300,7 +426,7 @@ New-ItemProperty -Path ""HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce
                     .FirstOrDefault(n => n.EndsWith("notification.png"));
                 if (resName == null) return null;
 
-                var path = Path.Combine(Path.GetTempPath(), "YourInstaller_icon.png");
+                var path = Path.Combine(Path.GetTempPath(), $"{TempDirName}_icon.png");
                 using var s = assembly.GetManifestResourceStream(resName)!;
                 using var f = File.Create(path);
                 s.CopyTo(f);
