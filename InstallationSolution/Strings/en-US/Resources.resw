@@ -118,16 +118,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AppDisplayName" xml:space="preserve">
-    <value>Installer</value>
+    <value>Self-installing package generator</value>
   </data>
   <data name="AppTitle" xml:space="preserve">
-    <value>Installer</value>
+    <value>Self-installing package generator</value>
   </data>
   <data name="HomeItem.Content" xml:space="preserve">
     <value>Home</value>
   </data>
   <data name="HomePageWelcomeText.Text" xml:space="preserve">
-    <value>Welcome to Installer</value>
+    <value>Welcome to Self-installing package generator</value>
   </data>
   <data name="HomePageJoinButton.Content" xml:space="preserve">
     <value>View GitHub repository</value>

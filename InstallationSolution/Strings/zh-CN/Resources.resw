@@ -118,16 +118,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AppDisplayName" xml:space="preserve">
-    <value>安装器</value>
+    <value>自安装包生成器</value>
   </data>
   <data name="AppTitle" xml:space="preserve">
-    <value>安装器</value>
+    <value>自安装包生成器</value>
   </data>
   <data name="HomeItem.Content" xml:space="preserve">
     <value>主页</value>
   </data>
   <data name="HomePageWelcomeText.Text" xml:space="preserve">
-    <value>欢迎使用安装器</value>
+    <value>欢迎使用自安装包生成器</value>
   </data>
   <data name="HomePageJoinButton.Content" xml:space="preserve">
     <value>查看Github仓库</value>
