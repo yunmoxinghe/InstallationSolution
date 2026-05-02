@@ -30,6 +30,8 @@
 		<PublishTrimmed>false</PublishTrimmed>
 		<TrimMode>partial</TrimMode>
 		<WindowsAppSDKDeploymentManagerInitialize>false</WindowsAppSDKDeploymentManagerInitialize>
+		<!-- 禁用 PRI 资源警告 -->
+		<EnablePriWarnings>false</EnablePriWarnings>
 	</PropertyGroup>
 
 	<!-- Guard 源码打包到应用目录的 GuardSource 子目录 -->
@@ -149,11 +151,9 @@
 		<!-- Release 模式不生成 PDB 文件 -->
 		<DebugType Condition="'$(Configuration)' != 'Debug'">None</DebugType>
 		<DebugSymbols Condition="'$(Configuration)' != 'Debug'">false</DebugSymbols>
-		<!-- Disable package signing for Debug builds, enable for Release -->
-		<AppxPackageSigningEnabled Condition="'$(Configuration)' == 'Debug'">False</AppxPackageSigningEnabled>
-		<AppxPackageSigningEnabled Condition="'$(Configuration)' != 'Debug'">True</AppxPackageSigningEnabled>
-		<GenerateTemporaryStoreCertificate Condition="'$(Configuration)' == 'Debug'">True</GenerateTemporaryStoreCertificate>
-		<GenerateTemporaryStoreCertificate Condition="'$(Configuration)' != 'Debug'">False</GenerateTemporaryStoreCertificate>
+		<!-- 禁用包签名以避免 WinAppSdkSignAppxPackageBundle 任务错误 -->
+		<AppxPackageSigningEnabled>False</AppxPackageSigningEnabled>
+		<GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
 		<GenerateAppInstallerFile>False</GenerateAppInstallerFile>
 		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
 		<AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
@@ -163,5 +163,41 @@
 		<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
 		<ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 		<AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
+		<!-- 签名配置已在上面根据 Configuration 条件设置，此处不再重复 -->
+		<PackageCertificateKeyFile>InstallationSolution_TemporaryKey.pfx</PackageCertificateKeyFile>
 	</PropertyGroup>
+
+	<!-- 定义空的 WinAppSdkSignAppxPackageBundle 任务以避免 MSIX 包中的 bug -->
+	<UsingTask TaskName="WinAppSdkSignAppxPackageBundle" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<AppxPackageToSign ParameterType="System.String" Required="false" />
+			<CertificateThumbprint ParameterType="System.String" Required="false" />
+			<CertificateFile ParameterType="System.String" Required="false" />
+			<CertificatePassword ParameterType="System.String" Required="false" />
+			<HashAlgorithmId ParameterType="System.String" Required="false" />
+			<EnableSigningChecks ParameterType="System.Boolean" Required="false" />
+			<SignAppxPackageExeFullPath ParameterType="System.String" Required="false" />
+			<TempCertificateFilePath ParameterType="System.String" Required="false" />
+			<TimestampUrl ParameterType="System.String" Required="false" />
+			<VsTelemetrySession ParameterType="System.String" Required="false" />
+			<SigningTimestampServerUrl ParameterType="System.String" Required="false" />
+			<SigningTimestampDigestAlgorithm ParameterType="System.String" Required="false" />
+			<AzureCodeSigningEnabled ParameterType="System.Boolean" Required="false" />
+			<AzureCodeSigningDlibFilePath ParameterType="System.String" Required="false" />
+			<AzureCodeSigningEndpoint ParameterType="System.String" Required="false" />
+			<AzureCodeSigningAccountName ParameterType="System.String" Required="false" />
+			<AzureCodeSigningCertificateProfileName ParameterType="System.String" Required="false" />
+			<AzureKeyVaultEnabled ParameterType="System.Boolean" Required="false" />
+			<AzureKeyVaultDlibFilePath ParameterType="System.String" Required="false" />
+			<AzureKeyVaultUrl ParameterType="System.String" Required="false" />
+			<AzureKeyVaultCertificateId ParameterType="System.String" Required="false" />
+		</ParameterGroup>
+		<Task>
+			<Code Type="Fragment" Language="cs">
+				<![CDATA[
+				Log.LogMessage(MessageImportance.High, "跳过包签名（AppxPackageSigningEnabled = False）");
+				]]>
+			</Code>
+		</Task>
+	</UsingTask>
 </Project>

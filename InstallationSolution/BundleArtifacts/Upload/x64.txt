@@ -1,0 +1,1 @@
+MainPackage=C:\Users\gold\source\repos\InstallationSolution\InstallationSolution\bin\x64\Release\net8.0-windows10.0.19041.0\Upload\InstallationSolution_0.0.14.0_x64.msix
